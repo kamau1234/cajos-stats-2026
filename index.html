@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cajos — Liga Tucán Stats</title>
+  <meta name="description" content="Season statistics for Cajos basketball team, Liga Tucán Municipal Puerto Vallarta" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: #08101e; }
+    #root { min-height: 100vh; }
+    #loading {
+      display: flex; align-items: center; justify-content: center;
+      height: 100vh; background: #08101e;
+      font-family: 'DM Mono', monospace; color: #f97316; font-size: 14px; letter-spacing: 3px;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">LOADING CAJOS STATS...</div>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+const { useState, useMemo } = React;
+
+// ─── Player colors (used in shot timeline) ─────────────────────────────────
+const PC = {91:"#f59e0b",11:"#22c55e",77:"#2dd4bf",43:"#f97316",7:"#a78bfa",1:"#60a5fa",87:"#94a3b8",17:"#9ca3af",16:"#fb923c",24:"#4ade80",15:"#c084fc",9:"#fbbf24",97:"#a3e635"};
+
+const PLAYERS = [
+  {number:1,  displayName:"Alex Palometta"},
+  {number:7,  displayName:"Kamau", badge:"🤕", badgeNote:"Injured — out"},
+  {number:9,  displayName:"Emmanuel", note:"#16 in G8 scorecard"},
+  {number:11, displayName:"Marlon"},
+  {number:15, displayName:"Diego"},
+  {number:16, displayName:"Edgar", badge:"🚢", badgeNote:"Away — cruise ship"},
+  {number:17, displayName:"Miguel"},
+  {number:24, displayName:"David"},
+  {number:43, displayName:"Ever"},
+  {number:77, displayName:"Alex Chavez"},
+  {number:87, displayName:"Luis"},
+  {number:91, displayName:"Angel"},
+  {number:97, displayName:"Jesus Perez"},
+];
+
+// shots: [[playerNumber, points], ...] in chronological order
+// refs:  {j1:"Name", j2:"Name"} — from scorecard images
+const GAMES = [
+  {
+    id:1,date:"Jan 26, 2026",opponent:"Lobos",location:"Cancha 4 Estadio · Outdoor",result:"L",teamScore:19,opponentScore:25,
+    refs:null,shots:null,
+    quarters:[{q:"Q1",t:5,o:13},{q:"Q2",t:2,o:3},{q:"Q3",t:2,o:4},{q:"Q4",t:10,o:5}],
+    playerStats:[{number:1,pts:8,fg2:4,fg3:0,ft:0,fouls:1},{number:15,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:16,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:17,pts:1,fg2:0,fg3:0,ft:1,fouls:2},{number:24,pts:1,fg2:0,fg3:0,ft:1,fouls:3},{number:43,pts:4,fg2:2,fg3:0,ft:0,fouls:0},{number:87,pts:3,fg2:1,fg3:0,ft:1,fouls:1},{number:97,pts:2,fg2:1,fg3:0,ft:0,fouls:1}],
+  },
+  {
+    id:2,date:"Feb 6, 2026",opponent:"Team Solis",location:"Cancha 4 · Outdoor",result:"W",teamScore:31,opponentScore:26,
+    refs:null,shots:null,scoreNote:"Kamau listed but did not play",
+    quarters:[{q:"Q1",t:6,o:8},{q:"Q2",t:6,o:7},{q:"Q3",t:8,o:6},{q:"Q4",t:11,o:5}],
+    playerStats:[{number:1,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:9,pts:2,fg2:1,fg3:0,ft:0,fouls:0},{number:11,pts:16,fg2:5,fg3:0,ft:6,fouls:0},{number:15,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:16,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:17,pts:0,fg2:0,fg3:0,ft:0,fouls:2},{number:24,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:43,pts:5,fg2:2,fg3:0,ft:1,fouls:3},{number:77,pts:8,fg2:3,fg3:0,ft:2,fouls:2},{number:87,pts:0,fg2:0,fg3:0,ft:0,fouls:4},{number:97,pts:0,fg2:0,fg3:0,ft:0,fouls:1}],
+  },
+  {
+    id:3,date:"Feb 20, 2026",opponent:"Marinaritos",location:"Cancha 4 · Outdoor",result:"W",teamScore:43,opponentScore:34,
+    refs:{j1:"García Dayel",j2:"Vázquez Pedro"},
+    quarters:[{q:"Q1",t:13,o:8},{q:"Q2",t:11,o:9},{q:"Q3",t:10,o:8},{q:"Q4",t:9,o:9}],
+    shots:[[7,2],[43,2],[16,2],[7,2],[91,2],[7,1],[7,2],[43,2],[16,2],[7,2],[91,3],[91,2],[91,2],[77,2],[7,1],[7,1],[7,2],[24,2],[77,2],[77,1],[16,2],[43,2],[43,2]],
+    playerStats:[{number:1,pts:0,fg2:0,fg3:0,ft:0,fouls:2},{number:7,pts:13,fg2:5,fg3:0,ft:3,fouls:1},{number:15,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:16,pts:6,fg2:3,fg3:0,ft:0,fouls:0},{number:17,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:24,pts:2,fg2:1,fg3:0,ft:0,fouls:0},{number:43,pts:8,fg2:4,fg3:0,ft:0,fouls:2},{number:77,pts:5,fg2:2,fg3:0,ft:1,fouls:0},{number:87,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:91,pts:9,fg2:3,fg3:1,ft:0,fouls:1},{number:97,pts:0,fg2:0,fg3:0,ft:0,fouls:0}],
+  },
+  {
+    id:4,date:"Feb 27, 2026",opponent:"Pajaros",location:"Cancha 4 Estadio · Outdoor",result:"W",teamScore:42,opponentScore:28,
+    refs:{j1:"González Elvis",j2:"De León Sofía"},
+    quarters:[{q:"Q1",t:8,o:7},{q:"Q2",t:15,o:6},{q:"Q3",t:12,o:8},{q:"Q4",t:7,o:7}],
+    shots:[[43,2],[91,2],[7,2],[43,2],[77,2],[1,2],[91,2],[1,2],[11,2],[91,2],[17,2],[7,1],[7,2],[24,1],[24,1],[11,2],[43,2],[7,2],[7,2],[11,1],[11,2],[7,2],[77,2]],
+    playerStats:[{number:1,pts:4,fg2:2,fg3:0,ft:0,fouls:2},{number:7,pts:11,fg2:5,fg3:0,ft:1,fouls:2},{number:11,pts:7,fg2:3,fg3:0,ft:1,fouls:1},{number:15,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:17,pts:2,fg2:1,fg3:0,ft:0,fouls:3},{number:24,pts:2,fg2:0,fg3:0,ft:2,fouls:0},{number:43,pts:6,fg2:3,fg3:0,ft:0,fouls:2},{number:77,pts:4,fg2:2,fg3:0,ft:0,fouls:1},{number:87,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:91,pts:6,fg2:3,fg3:0,ft:0,fouls:3},{number:97,pts:0,fg2:0,fg3:0,ft:0,fouls:1}],
+  },
+  {
+    id:5,date:"Mar 8, 2026",opponent:"Warriors",location:"Auditorio · Indoor",result:"W",teamScore:28,opponentScore:24,
+    refs:{j1:"Ruiz Jorge",j2:"Castañeda Jorge"},
+    quarters:[{q:"Q1",t:6,o:3},{q:"Q2",t:10,o:5},{q:"Q3",t:6,o:4},{q:"Q4",t:6,o:12}],
+    shots:[[91,2],[7,2],[1,2],[7,1],[7,1],[77,2],[43,2],[77,2],[77,2],[77,2],[91,2],[43,1],[43,1],[91,2],[91,1],[91,2],[43,1]],
+    playerStats:[{number:1,pts:2,fg2:1,fg3:0,ft:0,fouls:2},{number:7,pts:4,fg2:1,fg3:0,ft:2,fouls:4},{number:15,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:17,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:24,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:43,pts:5,fg2:1,fg3:0,ft:3,fouls:1},{number:77,pts:8,fg2:4,fg3:0,ft:0,fouls:0},{number:91,pts:9,fg2:4,fg3:0,ft:1,fouls:5,foulOut:true}],
+  },
+  {
+    id:6,date:"Mar 20, 2026",opponent:"Renegados",location:"Cancha 4 · Outdoor",result:"W",teamScore:46,opponentScore:19,
+    refs:{j1:"Ruiz Jorge",j2:"Saenz Pablo"},
+    scoreNote:"2 pts unattributed in shot log",
+    quarters:[{q:"Q1",t:7,o:5},{q:"Q2",t:12,o:4},{q:"Q3",t:9,o:6},{q:"Q4",t:18,o:4}],
+    shots:[[7,1],[24,2],[7,2],[7,2],[43,2],[7,2],[43,1],[43,2],[43,2],[7,2],[43,1],[77,3],[77,3],[7,2],[43,1],[1,2],[7,2],[43,2],[43,2],[7,2],[24,2],[43,2],[43,2]],
+    playerStats:[{number:1,pts:2,fg2:1,fg3:0,ft:0,fouls:1},{number:7,pts:15,fg2:7,fg3:0,ft:1,fouls:1},{number:15,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:17,pts:0,fg2:0,fg3:0,ft:0,fouls:4},{number:24,pts:4,fg2:2,fg3:0,ft:0,fouls:3},{number:43,pts:17,fg2:6,fg3:0,ft:3,fouls:0},{number:77,pts:6,fg2:0,fg3:2,ft:0,fouls:2}],
+  },
+  {
+    id:7,date:"Mar 23, 2026",opponent:"Linces",location:"Auditorio · Indoor",result:"W",teamScore:53,opponentScore:30,
+    refs:{j1:"Villalobos Manuel",j2:"Pérez Julieta"},
+    scoreNote:"3 pts adjusted from shot log (#91 ambiguous entry)",
+    quarters:[{q:"Q1",t:11,o:14},{q:"Q2",t:16,o:5},{q:"Q3",t:14,o:7},{q:"Q4",t:12,o:4}],
+    shots:[[91,2],[43,2],[91,2],[91,3],[91,2],[43,2],[91,2],[77,2],[77,2],[77,3],[43,2],[1,2],[77,2],[91,2],[91,1],[91,1],[91,1],[91,3],[87,1],[43,2],[91,2],[77,2],[77,2],[87,2],[77,3],[43,1],[17,2]],
+    playerStats:[{number:1,pts:2,fg2:1,fg3:0,ft:0,fouls:0},{number:17,pts:2,fg2:1,fg3:0,ft:0,fouls:0},{number:43,pts:9,fg2:4,fg3:0,ft:1,fouls:0},{number:77,pts:16,fg2:5,fg3:2,ft:0,fouls:2},{number:87,pts:3,fg2:1,fg3:0,ft:1,fouls:0},{number:91,pts:21,fg2:6,fg3:2,ft:3,fouls:3}],
+  },
+  // ── MISSING GAMES ── Identified via league standings cross-reference (J14 = 14 games, file = 12)
+  {
+    id:8, missing:true,
+    date:"~Mar 25–27, 2026", opponent:"Unknown", location:"Unknown · likely Cancha 4 or Auditorio",
+    result:"L", teamScore:44, opponentScore:43,
+    refs:null, shots:null, quarters:[],
+    scoreNote:"ESTIMATED — Score derived from league standings (PF/PA delta). Scorecard not recovered. Contact COMUDE.",
+    playerStats:[],
+  },
+  {
+    id:9, missing:true,
+    date:"~Late April 2026", opponent:"Unknown", location:"Unknown · likely Cancha 4 or Auditorio",
+    result:"W", teamScore:20, opponentScore:0,
+    refs:null, shots:null, quarters:[],
+    scoreNote:"ESTIMATED — Score derived from league standings. Possible forfeit (opponent scored 0). Scorecard not recovered.",
+    playerStats:[],
+  },
+  {
+    id:10,date:"May 3, 2026",opponent:"Commando Sport",location:"Cancha 4 · Outdoor",result:"L",teamScore:36,opponentScore:44,
+    refs:{j1:"González Elvis",j2:"Villalobos Manuel"},
+    quarters:[{q:"Q1",t:7,o:7},{q:"Q2",t:12,o:19},{q:"Q3",t:8,o:3},{q:"Q4",t:9,o:15}],
+    shots:[[11,2],[7,1],[11,2],[1,2],[11,1],[11,2],[7,3],[7,2],[11,2],[87,2],[1,2],[11,1],[87,2],[11,2],[11,1],[11,2],[7,2],[87,2],[7,1],[7,2]],
+    playerStats:[{number:1,pts:4,fg2:2,fg3:0,ft:0,fouls:3},{number:7,pts:11,fg2:3,fg3:1,ft:2,fouls:2},{number:9,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:11,pts:15,fg2:6,fg3:0,ft:3,fouls:2},{number:17,pts:0,fg2:0,fg3:0,ft:0,fouls:2},{number:87,pts:6,fg2:3,fg3:0,ft:0,fouls:2}],
+  },
+  {
+    id:11,date:"May 10, 2026",opponent:"Estrella Roja",location:"Auditorio · Indoor",result:"W",teamScore:71,opponentScore:34,
+    refs:{j1:"González Elvis",j2:"Ruesga David"},
+    scoreNote:"Opponent forfeited — result stands",
+    quarters:[{q:"Q1",t:14,o:8},{q:"Q2",t:29,o:6},{q:"Q3",t:14,o:15},{q:"Q4",t:14,o:5}],
+    shots:[[1,2],[17,2],[91,2],[11,2],[1,2],[11,2],[87,1],[87,1],[1,2],[11,2],[91,2],[1,2],[91,2],[91,2],[11,2],[11,2],[91,2],[77,2],[11,1],[77,2],[11,2],[87,2],[91,2],[91,3],[11,2],[77,2],[91,2],[91,3],[1,2],[91,2],[11,2],[11,2],[11,1],[11,1],[87,2],[91,2],[77,1],[77,1]],
+    playerStats:[{number:1,pts:10,fg2:5,fg3:0,ft:0,fouls:1},{number:11,pts:21,fg2:9,fg3:0,ft:3,fouls:4},{number:17,pts:2,fg2:1,fg3:0,ft:0,fouls:4},{number:77,pts:8,fg2:3,fg3:0,ft:2,fouls:2},{number:87,pts:6,fg2:2,fg3:0,ft:2,fouls:2},{number:91,pts:24,fg2:9,fg3:2,ft:0,fouls:3}],
+  },
+  {
+    id:12,date:"May 13, 2026",opponent:"Filipenses",location:"Auditorio · Indoor",result:"W",teamScore:58,opponentScore:31,
+    refs:{j1:"Martínez Joel",j2:"Ruisla David"},
+    quarters:[{q:"Q1",t:24,o:15},{q:"Q2",t:12,o:5},{q:"Q3",t:19,o:9},{q:"Q4",t:3,o:2}],
+    shots:[[91,2],[91,2],[77,3],[1,2],[91,3],[77,3],[77,2],[91,2],[91,1],[1,2],[77,2],[11,2],[91,2],[11,2],[11,2],[11,2],[87,2],[91,1],[11,2],[91,2],[11,2],[1,2],[11,2],[77,2],[77,2],[11,2],[77,2],[11,1],[91,2]],
+    playerStats:[{number:1,pts:6,fg2:3,fg3:0,ft:0,fouls:3},{number:11,pts:17,fg2:8,fg3:0,ft:1,fouls:0},{number:15,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:17,pts:0,fg2:0,fg3:0,ft:0,fouls:3},{number:24,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:77,pts:16,fg2:5,fg3:2,ft:0,fouls:2},{number:87,pts:2,fg2:1,fg3:0,ft:0,fouls:1},{number:91,pts:17,fg2:6,fg3:1,ft:2,fouls:4}],
+  },
+  {
+    id:13,date:"May 20, 2026",opponent:"Real Ixtapa",location:"Cancha 4 · Outdoor",result:"L",teamScore:46,opponentScore:52,
+    refs:{j1:"Galindo América",j2:"Ruiz Jorge"},
+    scoreNote:"Lost in overtime",
+    quarters:[{q:"Q1",t:12,o:7},{q:"Q2",t:11,o:19},{q:"Q3",t:9,o:6},{q:"Q4",t:10,o:10},{q:"OT",t:4,o:10}],
+    shots:[[11,2],[77,2],[11,2],[11,2],[11,2],[77,2],[77,2],[87,1],[11,2],[11,2],[15,2],[11,2],[15,2],[77,2],[77,1],[77,2],[11,2],[1,2],[77,1],[77,2],[1,2],[77,1],[87,2],[87,2],[77,2]],
+    playerStats:[{number:1,pts:4,fg2:2,fg3:0,ft:0,fouls:2},{number:11,pts:16,fg2:8,fg3:0,ft:0,fouls:0},{number:15,pts:4,fg2:2,fg3:0,ft:0,fouls:1},{number:17,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:24,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:77,pts:17,fg2:7,fg3:0,ft:3,fouls:2},{number:87,pts:5,fg2:2,fg3:0,ft:1,fouls:1}],
+  },
+  {
+    id:14,date:"May 27, 2026",opponent:"Guerreros",location:"Cancha 4 Estadio · Outdoor",result:"W",teamScore:47,opponentScore:44,
+    refs:{j1:"Castañeda Jorge",j2:"Del Río Olivos"},
+    quarters:[{q:"Q1",t:14,o:10},{q:"Q2",t:9,o:13},{q:"Q3",t:15,o:8},{q:"Q4",t:9,o:13}],
+    shots:[[77,2],[11,2],[43,2],[1,2],[43,2],[77,2],[91,2],[91,2],[77,1],[11,1],[91,2],[91,1],[91,2],[77,2],[11,2],[43,2],[91,2],[91,3],[11,2],[1,2],[91,2],[91,1],[91,1],[91,1],[43,2],[11,2]],
+    playerStats:[{number:1,pts:4,fg2:2,fg3:0,ft:0,fouls:2},{number:11,pts:9,fg2:4,fg3:0,ft:1,fouls:1},{number:15,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:17,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:43,pts:8,fg2:4,fg3:0,ft:0,fouls:1},{number:77,pts:7,fg2:3,fg3:0,ft:1,fouls:2},{number:87,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:91,pts:19,fg2:6,fg3:1,ft:4,fouls:4}],
+  },
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────
+function pName(n){return PLAYERS.find(x=>x.number===n)?.displayName||`#${n}`;}
+function pBadge(n){return PLAYERS.find(x=>x.number===n)?.badge||null;}
+function pNote(n){return PLAYERS.find(x=>x.number===n)?.note||null;}
+
+function computeSeason(){
+  const map={};
+  GAMES.forEach(g=>g.playerStats.forEach(s=>{
+    if(!map[s.number])map[s.number]={number:s.number,gp:0,pts:0,fg2:0,fg3:0,ft:0,fouls:0,foulOuts:0};
+    const m=map[s.number];m.gp++;m.pts+=s.pts;m.fg2+=s.fg2;m.fg3+=s.fg3;m.ft+=s.ft;m.fouls+=s.fouls;
+    if(s.foulOut)m.foulOuts++;
+  }));
+  return Object.values(map).map(p=>({...p,name:pName(p.number),badge:pBadge(p.number),note:pNote(p.number),ppg:+(p.pts/p.gp).toFixed(1),fpg:+(p.fouls/p.gp).toFixed(1),fgm:p.fg2+p.fg3}));
+}
+
+function assignShotsToQuarters(shots,qtotals){
+  const thresholds=qtotals.reduce((a,q,i)=>[...a,(a[i-1]||0)+q],[]);
+  const qShots=qtotals.map(()=>[]);let cum=0;
+  shots.forEach(shot=>{
+    let qi=thresholds.findIndex(t=>cum<t);if(qi===-1)qi=qShots.length-1;
+    qShots[qi].push(shot);cum+=shot[1];
+  });
+  return qShots;
+}
+
+// ─── Design tokens ────────────────────────────────────────────────────────
+const C={bg:"#08101e",card:"#0f1929",cardAlt:"#131f30",border:"#1e2d42",orange:"#f97316",green:"#22c55e",red:"#ef4444",yellow:"#f59e0b",text:"#e2e8f0",muted:"#64748b",light:"#94a3b8",teal:"#2dd4bf"};
+const SEASON=computeSeason();
+const WINS=GAMES.filter(g=>g.result==="W").length;
+const LOSSES=GAMES.filter(g=>g.result==="L").length;
+const AVG_PF=(GAMES.reduce((s,g)=>s+g.teamScore,0)/GAMES.length).toFixed(1);
+const AVG_PA=(GAMES.reduce((s,g)=>s+g.opponentScore,0)/GAMES.length).toFixed(1);
+const AVG_MARGIN=((GAMES.reduce((s,g)=>s+(g.teamScore-g.opponentScore),0)/GAMES.length)).toFixed(1);
+
+// ─── Chart components (pure SVG/CSS — no external lib needed) ─────────────
+function BarChart({data,keys,colors,h=160}){
+  const max=Math.max(1,...data.flatMap(d=>keys.map(k=>d[k]||0)));
+  return(
+    <div style={{display:"flex",gap:4,height:h,alignItems:"flex-end",padding:"0 2px 18px"}}>
+      {data.map((d,i)=>(
+        <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",height:"100%",minWidth:0}}>
+          <div style={{flex:1,display:"flex",alignItems:"flex-end",gap:1,width:"100%"}}>
+            {keys.map((k,ki)=>d[k]!=null&&d[k]>0&&(
+              <div key={k} style={{flex:1,height:`${(d[k]/max)*100}%`,background:colors[ki],borderRadius:"3px 3px 0 0",minHeight:2,position:"relative"}}>
+                <div style={{position:"absolute",top:-13,left:"50%",transform:"translateX(-50%)",fontSize:8,color:colors[ki],whiteSpace:"nowrap"}}>{d[k]}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{fontSize:8.5,color:C.muted,marginTop:2,whiteSpace:"nowrap"}}>{d.name}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LineChart({data,lines,h=160}){
+  const W=520,H=h,pad={l:22,r:8,t:14,b:20};const cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+  const max=Math.max(1,...data.flatMap(d=>lines.map(l=>d[l.key]||0)));
+  const gx=i=>pad.l+(data.length>1?(i/(data.length-1))*cw:cw/2);
+  const gy=v=>pad.t+ch*(1-v/max);
+  return(
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{overflow:"visible"}}>
+      {[0,25,50,75,100].map(p=><line key={p} x1={pad.l} y1={gy(max*p/100)} x2={W-pad.r} y2={gy(max*p/100)} stroke={C.border} strokeWidth={0.6}/>)}
+      {lines.map(l=>{
+        let d="";let mv=true;
+        data.forEach((row,i)=>{const v=row[l.key];if(v!=null){d+=mv?`M${gx(i)},${gy(v)}`:`L${gx(i)},${gy(v)}`;mv=false;}else mv=true;});
+        return(<g key={l.key}><path d={d} fill="none" stroke={l.color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>{data.map((row,i)=>row[l.key]!=null&&<circle key={i} cx={gx(i)} cy={gy(row[l.key])} r={3} fill={l.color}/>)}</g>);
+      })}
+      {data.map((d,i)=><text key={i} x={gx(i)} y={H-3} textAnchor="middle" fill={C.muted} fontSize={8.5}>{d.name}</text>)}
+    </svg>
+  );
+}
+
+// ─── Shot chip + timeline ─────────────────────────────────────────────────
+function ShotChip({n,pts,qs}){
+  const col=PC[n]||"#64748b";const is3=pts===3,isFT=pts===1;
+  return(
+    <div title={`${pName(n)} · ${pts}${isFT?"FT":is3?"pts (3)":"pts"}`}
+      style={{background:col,border:is3?`2px solid #fff`:isFT?`1px dashed #fff`:"none",borderRadius:isFT?"50%":5,width:30,height:30,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"default",flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.4)"}}>
+      <div style={{fontSize:8,color:"#000",fontWeight:900,lineHeight:1}}>{n}</div>
+      <div style={{fontSize:7,color:"rgba(0,0,0,.7)"}}>{isFT?"FT":is3?"3pt":"2pt"}</div>
+    </div>
+  );
+}
+
+function ShotTimeline({game}){
+  if(!game.shots||!game.shots.length)
+    return<div style={{color:C.muted,fontSize:11,padding:"14px 0",fontStyle:"italic"}}>{game.missing?"Shot sequence unavailable — scorecard not recovered.":"Shot sequence not available for G1–G2 (scorecards not yet uploaded)."}</div>;
+  const allQs=game.quarters;
+  const qtotals=allQs.map(q=>q.t);
+  const qShots=assignShotsToQuarters(game.shots,qtotals);
+  const scorers=Array.from(new Set(game.shots.map(s=>s[0]))).filter(n=>game.playerStats.find(p=>p.number===n&&p.pts>0));
+  return(
+    <div style={{marginTop:18}}>
+      <div style={{fontSize:10,color:C.muted,letterSpacing:3,marginBottom:10}}>SHOT FLOW BY QUARTER</div>
+      <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:8}}>
+        {qShots.map((shots,qi)=>{
+          const qLabel=allQs[qi]?.q||`Q${qi+1}`;
+          const qTotal=qtotals[qi];
+          const loggedQ=shots.reduce((s,sh)=>s+sh[1],0);
+          const isOT=qLabel==="OT";
+          return(
+            <div key={qi} style={{background:isOT?"rgba(245,158,11,.08)":C.cardAlt,border:`1px solid ${isOT?C.yellow:C.border}`,borderRadius:8,padding:"10px 10px 8px",minWidth:100,flexShrink:0}}>
+              <div style={{fontSize:9,color:isOT?C.yellow:C.orange,letterSpacing:2,marginBottom:8,fontWeight:700}}>{qLabel} — {qTotal} PTS{loggedQ<qTotal?<span style={{color:C.muted}}>*</span>:""}</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                {shots.length===0?<div style={{fontSize:10,color:C.muted,fontStyle:"italic"}}>no log</div>:shots.map((sh,i)=><ShotChip key={i} n={sh[0]} pts={sh[1]}/>)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:10,marginTop:10}}>
+        {scorers.map(n=>(
+          <div key={n} style={{display:"flex",alignItems:"center",gap:5}}>
+            <div style={{width:10,height:10,borderRadius:2,background:PC[n]||C.border}}/>
+            <span style={{fontSize:10,color:C.light}}>#{n} {pName(n)}</span>
+          </div>
+        ))}
+        <div style={{fontSize:10,color:C.muted,marginLeft:"auto"}}>
+          ○ = circle chip · dashed = FT · solid border = 3-pointer
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Sorting ──────────────────────────────────────────────────────────────
+function SortIcon({active,dir}){return<span style={{marginLeft:4,opacity:active?1:.3,color:active?C.orange:C.muted,fontSize:10}}>{active?(dir==="desc"?"▼":"▲"):"⇅"}</span>;}
+function TBar({v,max,color}){return<div style={{height:3,background:C.border,borderRadius:2,overflow:"hidden",marginTop:3}}><div style={{height:"100%",width:`${max?v/max*100:0}%`,background:color}}/></div>;}
+
+// ─── Quarter mini-bars for game log ──────────────────────────────────────
+function QBars({game}){
+  if(!game.quarters||game.quarters.length===0)return null;
+  return(
+    <div style={{display:"flex",gap:5,marginTop:10}}>
+      {game.quarters.map(q=>{
+        const isOT=q.q==="OT";const mx=Math.max(q.t,q.o,1);const pct=(q.t/mx)*100;
+        const col=q.t>q.o?(isOT?C.yellow:C.orange):q.t<q.o?C.red:C.light;
+        return(
+          <div key={q.q} style={{flex:isOT?0.6:1,minWidth:isOT?28:0}}>
+            <div style={{fontSize:8,color:isOT?C.yellow:C.muted,textAlign:"center",marginBottom:2,letterSpacing:1}}>{q.q}</div>
+            <div style={{height:5,background:C.border,borderRadius:3,overflow:"hidden"}}>
+              <div style={{height:"100%",width:`${pct}%`,background:col}}/>
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:8,marginTop:1}}>
+              <span style={{color:col,fontWeight:"bold"}}>{q.t}</span>
+              <span style={{color:C.muted}}>{q.o}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Trends data ─────────────────────────────────────────────────────────
+const q4Data=GAMES.map(g=>{const q=g.quarters.find(x=>x.q==="Q4");return{name:`G${g.id}`,Cajos:q?.t||0,Opp:q?.o||0};});
+const TOP=[91,11,77,43,7,1];
+const TOP_COLORS=[C.yellow,C.green,C.teal,C.orange,"#a78bfa",C.light];
+const perGameData=GAMES.map(g=>{
+  const row={name:`G${g.id}`};
+  TOP.forEach(n=>{const s=g.playerStats.find(p=>p.number===n);row[pName(n)]=s&&s.pts>0?s.pts:null;});
+  return row;
+});
+
+const STAT_COLS=[
+  {key:"number",label:"#",align:"center",noSort:true},
+  {key:"name",label:"PLAYER",align:"left",noSort:true},
+  {key:"gp",label:"GP",align:"center"},
+  {key:"pts",label:"PTS",align:"center"},
+  {key:"ppg",label:"PPG",align:"center"},
+  {key:"fgm",label:"FGM",align:"center"},
+  {key:"fg3",label:"3PM",align:"center"},
+  {key:"ft",label:"FTM",align:"center"},
+  {key:"fouls",label:"PF",align:"center"},
+  {key:"fpg",label:"FPG",align:"center"},
+];
+
+// ─── Main component ───────────────────────────────────────────────────────
+function CajosStats(){
+  const[tab,setTab]=useState("season");
+  const[sortCol,setSortCol]=useState("pts");
+  const[sortDir,setSortDir]=useState("desc");
+  const[selGame,setSelGame]=useState(null);
+
+  function doSort(col){if(col===sortCol)setSortDir(d=>d==="desc"?"asc":"desc");else{setSortCol(col);setSortDir("desc");}}
+  const sorted=useMemo(()=>[...SEASON].sort((a,b)=>{const va=parseFloat(a[sortCol])||0,vb=parseFloat(b[sortCol])||0;return sortDir==="desc"?vb-va:va-vb;}),[sortCol,sortDir]);
+  const maxPts=Math.max(...SEASON.map(p=>p.pts));
+
+  const S={
+    root:{fontFamily:"'DM Mono','Courier New',monospace",background:C.bg,minHeight:"100vh",color:C.text,fontSize:13},
+    hdr:{background:"linear-gradient(160deg,#0f1e33 0%,#1a0c03 100%)",borderBottom:`2px solid ${C.orange}`,padding:"16px 20px"},
+    tabs:{display:"flex",borderBottom:`1px solid ${C.border}`,background:C.card,padding:"0 20px"},
+    tab:(a)=>({background:"none",border:"none",borderBottom:a?`2px solid ${C.orange}`:"2px solid transparent",color:a?C.orange:C.muted,padding:"11px 16px",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,fontSize:13,letterSpacing:2,cursor:"pointer",marginBottom:-1}),
+    body:{padding:"16px 20px"},
+    sL:{fontSize:10,letterSpacing:3,color:C.muted,marginBottom:12},
+    tbl:{width:"100%",borderCollapse:"collapse"},
+    th:(a,al)=>({padding:"9px 10px",textAlign:al,fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,letterSpacing:2,fontWeight:700,color:a?C.orange:C.muted,background:C.cardAlt,borderBottom:`1px solid ${C.border}`,cursor:"pointer",whiteSpace:"nowrap",userSelect:"none"}),
+    td:(al)=>({padding:"9px 10px",textAlign:al,borderBottom:`1px solid ${C.border}`}),
+  };
+
+  return(
+    <div style={S.root}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap');.hrow:hover{background:#162032!important}.gc:hover{border-color:#f97316!important;cursor:pointer}.thx:hover{color:#f97316!important}`}</style>
+
+      {/* Header */}
+      <div style={S.hdr}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}}>
+          <div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:46,fontWeight:900,letterSpacing:5,lineHeight:1,color:"#fff"}}>CAJOS</div>
+            <div style={{fontSize:10,letterSpacing:3,color:C.muted,marginTop:3}}>LIGA TUCÁN MUNICIPAL · 3RA CATEGORÍA · VARONIL</div>
+          </div>
+          <div style={{display:"flex",gap:20,flexWrap:"wrap",alignItems:"center"}}>
+            {[{val:`${WINS}–${LOSSES}`,lbl:"LEAGUE REC.",col:C.orange},{val:AVG_PF,lbl:"PPG FOR",col:C.text},{val:AVG_PA,lbl:"PPG AGNST",col:C.light},{val:`+${AVG_MARGIN}`,lbl:"AVG MARGIN",col:C.green}]
+              .map(({val,lbl,col})=>(
+                <div key={lbl} style={{textAlign:"center"}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,lineHeight:1,color:col}}>{val}</div>
+                  <div style={{fontSize:9,letterSpacing:2,color:C.muted,marginTop:2}}>{lbl}</div>
+                </div>
+              ))}
+            <div style={{borderLeft:`1px solid ${C.border}`,paddingLeft:18,textAlign:"center"}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:C.yellow}}>14</div>
+              <div style={{fontSize:9,letterSpacing:2,color:C.muted}}>TOTAL GAMES</div>
+              <div style={{fontSize:9,color:C.yellow,marginTop:2}}>⚠ 2 SCORECARDS MISSING</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={S.tabs}>
+        {["season","gamelog","boxscore","trends"].map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={S.tab(tab===t)}>
+            {{season:"Season Stats",gamelog:"Game Log",boxscore:"Box Score",trends:"Trends"}[t].toUpperCase()}
+          </button>
+        ))}
+      </div>
+
+      <div style={S.body}>
+
+        {/* ══ SEASON STATS ══ */}
+        {tab==="season"&&(
+          <div>
+            <div style={S.sL}>SEASON PLAYER STATISTICS · 12 DOCUMENTED GAMES · CLICK HEADER TO SORT</div>
+            <div style={{background:"rgba(245,158,11,.07)",border:"1px solid rgba(245,158,11,.3)",borderRadius:6,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"center"}}>
+              <span style={{fontSize:16}}>⚠</span>
+              <div style={{fontSize:11,color:C.yellow,lineHeight:1.6}}>
+                <b>2 games are missing from this file</b> (G8 & G9 — scorecards not found). League standings confirm a 10W–4L record over 14 games. Player stats below reflect the 12 documented games only. Contact COMUDE to recover the missing scorecards: <span style={{color:C.teal}}>deporte.popular@comudepuertovallarta.gob.mx</span>
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginBottom:16}}>
+              {[{lbl:"🏆 Leader PPG",val:"Angel #91",sub:"105 pts · 15.0 PPG",c:C.orange},{lbl:"📈 2nd PPG",val:"Marlon #11",sub:"101 pts · 14.4 PPG",c:C.green},{lbl:"🎯 3-Point Leader",val:"Alex Chavez #77",sub:"14 triples made",c:C.teal},{lbl:"⚠️ Foul Risk",val:"Angel / Miguel",sub:"3.0 / 2.0 FPG",c:C.yellow},{lbl:"💪 Q4 Avg",val:"10.1 pts",sub:"vs 6.4 opp",c:C.green},{lbl:"📊 Record",val:`${WINS}–${LOSSES}`,sub:`${((WINS/GAMES.length)*100).toFixed(0)}% win rate`,c:WINS>LOSSES?C.green:C.red}]
+                .map(x=><div key={x.lbl} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:6,padding:"10px 13px"}}><div style={{fontSize:9,color:C.muted,letterSpacing:1,marginBottom:3}}>{x.lbl.toUpperCase()}</div><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:700,color:x.c}}>{x.val}</div><div style={{fontSize:11,color:C.light,marginTop:2}}>{x.sub}</div></div>)}
+            </div>
+            <div style={{overflowX:"auto"}}>
+              <table style={S.tbl}>
+                <thead><tr>{STAT_COLS.map(col=><th key={col.key} className="thx" style={S.th(sortCol===col.key,col.align)} onClick={()=>!col.noSort&&doSort(col.key)}>{col.label}{!col.noSort&&<SortIcon active={sortCol===col.key} dir={sortDir}/>}</th>)}</tr></thead>
+                <tbody>
+                  {sorted.map((p,i)=>(
+                    <tr key={p.number} className="hrow" style={{background:i%2===0?C.card:C.cardAlt}}>
+                      <td style={{...S.td("center"),fontFamily:"'Barlow Condensed',sans-serif",fontSize:19,fontWeight:900,color:p.badge?C.muted:C.orange}}>{p.badge?<span style={{fontSize:16}}>{p.badge}</span>:p.number}</td>
+                      <td style={S.td("left")}>
+                        <span style={{fontWeight:500,color:p.badge?"#6b7280":"#fff"}}>{p.name}</span>
+                        {p.badge&&<span style={{marginLeft:6,fontSize:10,color:C.muted,fontStyle:"italic"}}>{PLAYERS.find(x=>x.number===p.number)?.badgeNote}</span>}
+                        {!p.badge&&p.note&&<span style={{marginLeft:6,fontSize:10,color:C.yellow,background:"#451a03",padding:"1px 5px",borderRadius:3}}>{p.note}</span>}
+                        {!p.badge&&<TBar v={p.pts} max={maxPts} color={C.orange}/>}
+                      </td>
+                      <td style={{...S.td("center"),color:C.muted}}>{p.gp}</td>
+                      <td style={{...S.td("center"),fontFamily:"'Barlow Condensed',sans-serif",fontSize:19,fontWeight:900,color:p.pts>0?"#fff":C.muted}}>{p.pts||"—"}</td>
+                      <td style={{...S.td("center"),color:p.ppg>=12?C.orange:p.ppg>=8?C.green:p.ppg>=4?C.text:C.muted,fontWeight:p.ppg>=8?"bold":"normal"}}>{p.ppg}</td>
+                      <td style={{...S.td("center"),color:p.fgm>0?C.light:C.muted}}>{p.fgm||"—"}</td>
+                      <td style={{...S.td("center"),color:p.fg3>0?C.yellow:C.muted}}>{p.fg3>0?p.fg3:"—"}</td>
+                      <td style={{...S.td("center"),color:p.ft>0?C.light:C.muted}}>{p.ft||"—"}</td>
+                      <td style={{...S.td("center"),color:p.fouls>=12?C.red:p.fouls>=8?C.orange:p.fouls>=5?C.yellow:p.fouls>0?C.light:C.muted,fontWeight:p.fouls>=8?"bold":"normal"}}>{p.fouls>0?p.fouls:"—"}{p.foulOuts>0&&<span style={{fontSize:9,marginLeft:3,color:C.red}}>✕{p.foulOuts}</span>}</td>
+                      <td style={{...S.td("center"),color:p.fpg>=3?C.yellow:p.fpg>=2?C.light:C.muted}}>{p.fpg}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{marginTop:10,fontSize:10,color:C.muted}}>🤕 = injured · 🚢 = away on cruise ship · ✕ = season foul-out · 3PM = three-pointers made</div>
+          </div>
+        )}
+
+        {/* ══ GAME LOG ══ */}
+        {tab==="gamelog"&&(
+          <div>
+            <div style={S.sL}>GAME LOG · {WINS}W–{LOSSES}L · CLICK TO VIEW BOX SCORE</div>
+            {GAMES.map(g=>(
+              <div key={g.id} className="gc"
+                style={{background:g.missing?"rgba(245,158,11,.04)":C.card,border:`1px solid ${g.missing?"rgba(245,158,11,.35)":C.border}`,borderRadius:8,padding:"13px 16px",marginBottom:10,transition:"border-color .2s",opacity:g.missing?0.85:1}}
+                onClick={()=>{setSelGame(g);setTab("boxscore");}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:24,fontWeight:900,color:g.result==="W"?C.green:C.red,minWidth:20}}>
+                      {g.result}{g.quarters.some(q=>q.q==="OT")&&<span style={{fontSize:11,color:C.yellow,marginLeft:2}}>OT</span>}
+                    </div>
+                    <div>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:17,fontWeight:700,color:g.missing?"#a16207":"#fff",letterSpacing:1}}>G{g.id} — {g.missing?"? UNKNOWN":g.opponent.toUpperCase()}</div>
+                        {g.missing&&<span style={{fontSize:10,background:"rgba(245,158,11,.2)",color:C.yellow,border:"1px solid rgba(245,158,11,.4)",padding:"2px 7px",borderRadius:4,letterSpacing:1}}>SCORECARD MISSING</span>}
+                      </div>
+                      <div style={{color:C.muted,fontSize:11,marginTop:1}}>{g.date} · {g.location}</div>
+                      {g.refs&&<div style={{fontSize:10,color:C.muted,marginTop:1}}>🏀 {g.refs.j1} &amp; {g.refs.j2}</div>}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{textAlign:"center"}}>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:33,fontWeight:900,lineHeight:1,color:g.missing?"#a16207":"#fff"}}>{g.teamScore}{g.missing&&<span style={{fontSize:16,color:C.yellow}}>~</span>}</div>
+                      <div style={{fontSize:9,color:C.orange,letterSpacing:2}}>CAJOS</div>
+                    </div>
+                    <div style={{color:C.border,fontFamily:"'Barlow Condensed',sans-serif",fontSize:22}}>–</div>
+                    <div style={{textAlign:"center"}}>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:33,fontWeight:900,lineHeight:1,color:C.muted}}>{g.opponentScore}{g.missing&&<span style={{fontSize:16,color:C.yellow}}>~</span>}</div>
+                      <div style={{fontSize:9,color:C.muted,letterSpacing:1}}>{g.missing?"?":g.opponent.slice(0,8).toUpperCase()}</div>
+                    </div>
+                  </div>
+                  <div style={{fontSize:11,color:C.muted}}>{g.missing?"view details →":"box score →"}</div>
+                </div>
+                <QBars game={g}/>
+                {g.missing&&<div style={{marginTop:8,display:"flex",alignItems:"center",gap:8,background:"rgba(245,158,11,.08)",padding:"7px 10px",borderRadius:5}}><span style={{fontSize:14}}>⚠</span><span style={{fontSize:11,color:C.yellow}}>Score estimated from league standings data. Request scorecard from COMUDE at deporte.popular@comudepuertovallarta.gob.mx</span></div>}
+                {!g.missing&&g.scoreNote&&<div style={{marginTop:7,fontSize:10,color:C.yellow}}>⚠ {g.scoreNote}</div>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ══ BOX SCORE ══ */}
+        {tab==="boxscore"&&(
+          <div>
+            <div style={{display:"flex",gap:7,marginBottom:14,flexWrap:"wrap"}}>
+              {GAMES.map(g=>(
+                <button key={g.id} onClick={()=>setSelGame(g)}
+                  style={{background:selGame?.id===g.id?C.orange:C.card,border:`1px solid ${selGame?.id===g.id?C.orange:C.border}`,color:selGame?.id===g.id?"#fff":C.muted,padding:"6px 11px",borderRadius:5,fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,letterSpacing:1,cursor:"pointer"}}>
+                  G{g.id} {g.result}
+                </button>
+              ))}
+            </div>
+
+            {!selGame&&<div style={{color:C.muted,fontSize:12,textAlign:"center",marginTop:50}}>Select a game.</div>}
+            {selGame&&(()=>{
+              const g=selGame;
+              // Missing game — show info card only
+              if(g.missing) return(
+                <div style={{background:"rgba(245,158,11,.06)",border:`1px solid rgba(245,158,11,.3)`,borderRadius:8,padding:"20px 22px"}}>
+                  <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
+                    <div style={{fontSize:32}}>⚠</div>
+                    <div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:700,color:C.yellow,letterSpacing:1,marginBottom:6}}>G{g.id} — SCORECARD NOT RECOVERED</div>
+                      <div style={{fontSize:12,color:C.light,lineHeight:1.7,maxWidth:560}}>
+                        <div><b style={{color:C.text}}>Result:</b> {g.result==="L"?"Loss":"Win"} — estimated score: <b style={{color:C.orange}}>Cajos ~{g.teamScore}</b>, Opponent ~{g.opponentScore}</div>
+                        <div><b style={{color:C.text}}>Date:</b> {g.date}</div>
+                        <div><b style={{color:C.text}}>How we know:</b> League standings cross-reference (J14 snapshot vs this file). Score is the exact delta in PF/PA from the league table.</div>
+                        {g.id===9&&<div style={{marginTop:6,color:C.yellow}}>Opponent scored 0 — this may have been a forfeit before play began.</div>}
+                        <div style={{marginTop:10,padding:"10px 14px",background:"rgba(0,0,0,.3)",borderRadius:6,borderLeft:`3px solid ${C.yellow}`}}>
+                          <div style={{fontWeight:"bold",color:C.yellow,marginBottom:4}}>How to recover this scorecard:</div>
+                          <div>1. Contact COMUDE: <span style={{color:C.teal}}>deporte.popular@comudepuertovallarta.gob.mx</span></div>
+                          <div>2. Check WhatsApp group for the Liga Tucán 3ra Categoría for referee sheets</div>
+                          <div>3. Ask referee coordinator — González Elvis or Villalobos Manuel appear in adjacent games</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+              const logged=g.playerStats.reduce((s,p)=>s+p.pts,0);
+              const tfg2=g.playerStats.reduce((s,p)=>s+p.fg2,0);
+              const tfg3=g.playerStats.reduce((s,p)=>s+p.fg3,0);
+              const tft=g.playerStats.reduce((s,p)=>s+p.ft,0);
+              const tpf=g.playerStats.reduce((s,p)=>s+p.fouls,0);
+              const hasOT=g.quarters.some(q=>q.q==="OT");
+              return(
+                <div>
+                  {/* Game header */}
+                  <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"13px 16px",marginBottom:14}}>
+                    <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:10,alignItems:"center",marginBottom:12}}>
+                      <div>
+                        <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,letterSpacing:1}}>
+                          G{g.id} — CAJOS <span style={{color:g.result==="W"?C.green:C.red}}>{g.teamScore}</span> – <span style={{color:C.muted}}>{g.opponentScore}</span> {g.opponent.toUpperCase()}
+                          {hasOT&&<span style={{fontSize:13,color:C.yellow,marginLeft:8}}>OT</span>}
+                        </div>
+                        <div style={{color:C.muted,fontSize:11,marginTop:2}}>{g.date} · {g.location}</div>
+                        {g.refs&&<div style={{fontSize:11,color:C.light,marginTop:2}}>Árbitros: {g.refs.j1} &amp; {g.refs.j2}</div>}
+                        {g.scoreNote&&<div style={{fontSize:10,color:C.yellow,marginTop:3}}>⚠ {g.scoreNote}</div>}
+                      </div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,padding:"4px 12px",borderRadius:6,background:g.result==="W"?"rgba(34,197,94,.15)":"rgba(239,68,68,.15)",color:g.result==="W"?C.green:C.red,border:`1px solid ${g.result==="W"?"rgba(34,197,94,.3)":"rgba(239,68,68,.3)"}`}}>{g.result==="W"?"WIN":"LOSS"}</div>
+                    </div>
+                    {/* Quarter boxes */}
+                    {g.quarters&&g.quarters.length>0&&<div style={{display:"grid",gridTemplateColumns:`repeat(${g.quarters.length},1fr)`,gap:7}}>
+                      {g.quarters.map(q=>{
+                        const mx=Math.max(q.t,q.o,1);const isOT=q.q==="OT";
+                        const col=q.t>q.o?(isOT?C.yellow:C.orange):q.t<q.o?C.red:"#fff";
+                        return(
+                          <div key={q.q} style={{background:isOT?"rgba(245,158,11,.06)":C.cardAlt,border:isOT?`1px solid rgba(245,158,11,.3)`:"none",borderRadius:6,padding:"9px 10px"}}>
+                            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:9,color:isOT?C.yellow:C.muted,letterSpacing:2,marginBottom:5}}>{q.q}</div>
+                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:col}}>{q.t}</span>
+                              <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:900,color:C.muted}}>{q.o}</span>
+                            </div>
+                            <div style={{height:3,background:C.border,borderRadius:2,overflow:"hidden",marginBottom:2}}><div style={{height:"100%",width:`${(q.t/mx)*100}%`,background:isOT?C.yellow:C.orange}}/></div>
+                            <div style={{height:3,background:C.border,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${(q.o/mx)*100}%`,background:C.muted}}/></div>
+                          </div>
+                        );
+                      })}
+                    </div>}
+                  </div>
+
+                  {/* Player box score */}
+                  <div style={S.sL}>PLAYER STATS</div>
+                  <div style={{overflowX:"auto",marginBottom:16}}>
+                    <table style={S.tbl}>
+                      <thead><tr>{["#","PLAYER","PTS","FG2","FG3","FT","PF"].map((h,i)=><th key={h} style={S.th(false,i<2?"left":"center")}>{h}</th>)}</tr></thead>
+                      <tbody>
+                        {[...g.playerStats].sort((a,b)=>b.pts-a.pts).map((p,i)=>(
+                          <tr key={p.number} className="hrow" style={{background:i%2===0?C.card:C.cardAlt}}>
+                            <td style={{...S.td("center"),fontFamily:"'Barlow Condensed',sans-serif",fontSize:17,fontWeight:900,color:C.orange}}>{p.number}</td>
+                            <td style={{...S.td("left"),color:"#fff",fontWeight:500}}>{pName(p.number)}{p.foulOut&&<span style={{marginLeft:7,fontSize:10,color:C.red,background:"rgba(239,68,68,.15)",padding:"1px 5px",borderRadius:3}}>FOULED OUT</span>}</td>
+                            <td style={{...S.td("center"),fontFamily:"'Barlow Condensed',sans-serif",fontSize:19,fontWeight:900,color:p.pts>=20?C.yellow:p.pts>=10?C.orange:p.pts>0?"#fff":C.muted}}>{p.pts>0?p.pts:"—"}</td>
+                            <td style={{...S.td("center"),color:p.fg2>0?C.light:C.muted}}>{p.fg2>0?p.fg2:"—"}</td>
+                            <td style={{...S.td("center"),color:p.fg3>0?C.yellow:C.muted}}>{p.fg3>0?p.fg3:"—"}</td>
+                            <td style={{...S.td("center"),color:p.ft>0?C.light:C.muted}}>{p.ft>0?p.ft:"—"}</td>
+                            <td style={{...S.td("center"),color:p.fouls>=5?C.red:p.fouls>=4?C.orange:p.fouls>=3?C.yellow:p.fouls>0?C.light:C.muted,fontWeight:p.fouls>=4?"bold":"normal"}}>{p.fouls>0?p.fouls:"—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr style={{background:"rgba(249,115,22,.07)",borderTop:`1px solid ${C.orange}`}}>
+                          <td colSpan={2} style={{...S.td("left"),fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,color:C.orange,letterSpacing:2}}>TOTAL{logged<g.teamScore?` (${g.teamScore-logged} unattrib.)`:""}</td>
+                          <td style={{...S.td("center"),fontFamily:"'Barlow Condensed',sans-serif",fontSize:19,fontWeight:900,color:C.orange}}>{logged}</td>
+                          <td style={{...S.td("center"),color:C.light}}>{tfg2}</td>
+                          <td style={{...S.td("center"),color:tfg3>0?C.yellow:C.muted}}>{tfg3>0?tfg3:"—"}</td>
+                          <td style={{...S.td("center"),color:C.light}}>{tft}</td>
+                          <td style={{...S.td("center"),color:tpf>=12?C.red:C.yellow}}>{tpf}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+
+                  {/* Shot timeline */}
+                  <ShotTimeline game={g}/>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ══ TRENDS ══ */}
+        {tab==="trends"&&(
+          <div>
+            <div style={S.sL}>GAME TRENDS & PATTERNS · {GAMES.length} GAMES</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:18}}>
+              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"14px 16px"}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,color:C.orange,letterSpacing:2,marginBottom:3}}>Q4 SCORING BY GAME</div>
+                <div style={{fontSize:11,color:C.muted,marginBottom:10}}>
+                  <span style={{color:C.orange}}>■ Cajos</span>&nbsp; <span style={{color:C.border}}>■ Opponent</span> — strong Q4 closers
+                </div>
+                <BarChart data={q4Data} keys={["Cajos","Opp"]} colors={[C.orange,C.border]} h={150}/>
+              </div>
+              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"14px 16px"}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,color:C.orange,letterSpacing:2,marginBottom:3}}>SCORING LEADERS PER GAME</div>
+                <div style={{fontSize:11,color:C.muted,marginBottom:6,display:"flex",gap:10,flexWrap:"wrap"}}>
+                  {TOP.map((n,i)=><span key={n} style={{color:TOP_COLORS[i]}}>■ #{n}</span>)}
+                </div>
+                <LineChart data={perGameData} lines={TOP.map((n,i)=>({key:pName(n),color:TOP_COLORS[i]}))} h={150}/>
+              </div>
+            </div>
+
+            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"14px 16px",marginBottom:14}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,color:C.orange,letterSpacing:2,marginBottom:10}}>GAME-BY-GAME TEAM PERFORMANCE</div>
+              <div style={{overflowX:"auto"}}>
+                <table style={S.tbl}>
+                  <thead><tr>{["G","OPPONENT","RES","Q1","Q2","Q3","Q4","FOR","AGNST","MARGIN","REFS"].map(h=><th key={h} style={S.th(false,"center")}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {GAMES.map((g,i)=>{
+                      const margin=g.teamScore-g.opponentScore;
+                      const regularQs=g.quarters.filter(q=>q.q!=="OT");
+                      return(
+                        <tr key={g.id} className="hrow" style={{background:i%2===0?C.card:C.cardAlt}}>
+                          <td style={{...S.td("center"),fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,color:C.orange}}>{g.id}</td>
+                          <td style={{...S.td("center"),color:C.light,fontSize:11}}>{g.opponent}</td>
+                          <td style={{...S.td("center"),fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:700,color:g.result==="W"?C.green:C.red}}>{g.result}{g.quarters.some(q=>q.q==="OT")&&<span style={{fontSize:9,color:C.yellow,marginLeft:2}}>OT</span>}</td>
+                          {regularQs.map(q=><td key={q.q} style={{...S.td("center"),color:q.t>q.o?C.green:q.t<q.o?C.red:C.light,fontWeight:"bold",fontSize:12}}>{q.t}</td>)}
+                          <td style={{...S.td("center"),fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,color:"#fff"}}>{g.teamScore}</td>
+                          <td style={{...S.td("center"),color:C.muted}}>{g.opponentScore}</td>
+                          <td style={{...S.td("center"),fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,color:margin>=0?C.green:C.red,fontWeight:"bold"}}>{margin>0?"+":""}{margin}</td>
+                          <td style={{...S.td("center"),fontSize:10,color:C.muted}}>{g.refs?`${g.refs.j1.split(" ")[0]} & ${g.refs.j2.split(" ")[0]}`:"—"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{background:"rgba(249,115,22,.06)",borderTop:`1px solid ${C.orange}`}}>
+                      <td colSpan={3} style={{...S.td("center"),color:C.orange,fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,letterSpacing:2}}>AVG</td>
+                      {["Q1","Q2","Q3","Q4"].map(qk=>{const avg=(GAMES.reduce((s,g)=>{const q=g.quarters.find(x=>x.q===qk);return s+(q?q.t:0);},0)/GAMES.length).toFixed(1);return<td key={qk} style={{...S.td("center"),color:C.light,fontSize:12}}>{avg}</td>;})}
+                      <td style={{...S.td("center"),color:C.orange,fontFamily:"'Barlow Condensed',sans-serif",fontSize:15}}>{AVG_PF}</td>
+                      <td style={{...S.td("center"),color:C.muted}}>{AVG_PA}</td>
+                      <td style={{...S.td("center"),color:C.green,fontFamily:"'Barlow Condensed',sans-serif",fontSize:15}}>+{AVG_MARGIN}</td>
+                      <td style={S.td("center")}/>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              {[{title:"Q4 CLOSERS",c:C.green,pts:["Avg Q4: 10.1–6.4 pts — consistent finishers.","Best Q4: G6 vs Renegados 18–4. Best run: G9 (71 pts).","Only loss where team was outscored in Q4: G8."]},
+               {title:"Q2 VULNERABILITY",c:C.yellow,pts:["Outscored in Q2 six times across the season.","G8 vs Commando Sport: 12–19 in Q2 — key to loss.","G11 vs Real Ixtapa: gave up 19 in Q2, couldn't hold OT."]},
+               {title:"FOUL MANAGEMENT",c:C.red,pts:["Angel #91 (3.0 FPG) + Miguel #17 (2.0 FPG) are the risks.","Angel fouled out in G5. Near-foul-out several other games.","Both G9 and G10 saw Marlon hit 4 fouls — manage him early."]},
+               {title:"STAR POWER",c:C.teal,pts:["Angel #91 (15.0) + Marlon #11 (14.4) = elite PPG duo.","Chavez #77 now 14 three-pointers on season — best perimeter option.","Best team output: 71 pts vs Estrella Roja (G9)."]}]
+                .map(c=>(
+                  <div key={c.title} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px 14px"}}>
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,color:c.c,letterSpacing:2,marginBottom:8}}>{c.title}</div>
+                    {c.pts.map((pt,i)=><div key={i} style={{fontSize:11,color:C.light,marginBottom:5,paddingLeft:10,borderLeft:`2px solid ${c.c}`,lineHeight:1.5}}>{pt}</div>)}
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+    // Remove loading screen and mount app
+    document.getElementById('loading').style.display = 'none';
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(CajosStats));
+  </script>
+</body>
+</html>
