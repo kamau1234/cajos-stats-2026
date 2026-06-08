@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cajos — Liga Tucán Stats</title>
-  <meta name="description" content="Season statistics for Cajos basketball team, Liga Tucán Municipal Puerto Vallarta" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -15,25 +14,114 @@
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: #08101e; }
     #root { min-height: 100vh; }
-    #loading {
-      display: flex; align-items: center; justify-content: center;
-      height: 100vh; background: #08101e;
-      font-family: 'DM Mono', monospace; color: #f97316; font-size: 14px; letter-spacing: 3px;
-    }
+    #loading { display:flex;align-items:center;justify-content:center;height:100vh;background:#08101e;font-family:'DM Mono',monospace;color:#f97316;font-size:14px;letter-spacing:3px; }
   </style>
 </head>
 <body>
   <div id="loading">LOADING CAJOS STATS...</div>
   <div id="root"></div>
-
   <script type="text/babel" data-presets="react">
 const { useState, useMemo } = React;
 
 // ─── Player colors (used in shot timeline) ─────────────────────────────────
 const PC = {91:"#f59e0b",11:"#22c55e",77:"#2dd4bf",43:"#f97316",7:"#a78bfa",1:"#60a5fa",87:"#94a3b8",17:"#9ca3af",16:"#fb923c",24:"#4ade80",15:"#c084fc",9:"#fbbf24",97:"#a3e635"};
 
+
+const I18N={
+  en:{
+    toggle:"🌐 Español",
+    hdr:{rec:"LEAGUE REC.",ppgFor:"PPG FOR",ppgAgnst:"PPG AGNST",margin:"AVG MARGIN",total:"TOTAL GAMES"},
+    mBadge:n=>`⚠ ${n} SCORECARD MISSING`,
+    tabs:{season:"Season Stats",gamelog:"Game Log",boxscore:"Box Score",trends:"Trends"},
+    seasonLbl:n=>`SEASON STATS · ${n} GAMES WITH DATA · CLICK HEADER TO SORT`,
+    warnBold:"1 game still missing",
+    warnMsg:n=>`(G9 — unknown opponent, confirmed win). G3 vs Primates Unidos (L 41–43) identified. Stats reflect ${n} games with scorecards only.`,
+    cardLbls:["🏆 Leader PPG","📈 2nd PPG","🎯 3-Point Leader","⚠️ Foul Risk","💪 Q4 Avg","📊 Record"],
+    card3sub:"14 triples made",cardQ4sub:"vs 6.4 opp",winRate:"win rate",
+    colPlayer:"PLAYER",colGP:"GP",colPPG:"PPG",colFGM:"FGM",colFPG:"FPG",
+    injNote:"Injured — out",cruiseNote:"Away — cruise ship",
+    legend:"🤕 = injured · 🚢 = away on cruise ship · ✕ = season foul-out · 3PM = three-pointers made",
+    gamelogLbl:(w,l)=>`GAME LOG · ${w}W–${l}L · CLICK TO VIEW BOX SCORE`,
+    bsArrow:"box score →",detArrow:"view details →",
+    missBadge:"SCORECARD MISSING",confBadge:"SCORE CONFIRMED",
+    missNote:"Score estimated from league standings.",
+    confNote:s=>`Coach confirmed score (${s}). Scorecard not recovered.`,
+    selGame:"Select a game.",
+    WIN:"WIN",LOSS:"LOSS",
+    pStats:"PLAYER STATS",colPlayerBS:"PLAYER",colFT:"FT",colPF:"PF",
+    foulOut:"FOULED OUT",loggedLbl:"TOTAL",
+    shotFlow:"SHOT FLOW BY QUARTER",chipFT:"FT",
+    shotLegend:"○ = round chip · dashed = FT · solid border = 3-pointer",
+    shotNA:m=>m?"Shot sequence unavailable — scorecard not recovered.":"Shot sequence not available for G1–G2 (scorecards not yet uploaded).",
+    qNoData:"no log",
+    missingTitle:"SCORECARD NOT RECOVERED",
+    mResult:"Result:",mDate:"Date:",mHow:"How we know:",
+    mForfeit:"Opponent scored 0 — this may have been a forfeit before play began.",
+    mRecover:"How to recover this scorecard:",
+    mS1:"Contact COMUDE: deporte.popular@comudepuertovallarta.gob.mx",
+    mS2:"Check WhatsApp group for Liga Tucán 3ra Categoría for referee sheets",
+    mS3:"Ask referee coordinator — González Elvis or Villalobos Manuel appear in adjacent games",
+    trendsLbl:n=>`GAME TRENDS & PATTERNS · ${n} GAMES`,
+    q4Title:"Q4 SCORING BY GAME",q4Sub:"Cajos (orange) vs Opponent — strong Q4 closers",
+    scTitle:"SCORING LEADERS PER GAME",scSub:"Points scored by top 6 contributors",
+    perfTable:"GAME-BY-GAME TEAM PERFORMANCE",
+    colOpp:"OPPONENT",colRes:"RES",colFor:"FOR",colAgnst:"AGNST",colMargin:"MARGIN",colRefs:"REFS",avg:"AVG",
+    pats:[
+      {title:"Q4 CLOSERS",pts:["Avg Q4: 10.1–6.4 pts — consistent finishers.","Best Q4: G7 vs Renegados 18–4. Best output: G11 (71 pts).","Comeback win G2 vs Solis: +5 pts in Q4."]},
+      {title:"Q2 VULNERABILITY",pts:["Outscored in Q2 six times across the season.","G10 Commando Sport: 12–19 in Q2 — key to loss.","G13 Real Ixtapa: gave up 19 in Q2, lost in OT."]},
+      {title:"FOUL MANAGEMENT",pts:["Angel #91 (3.0 FPG) + Miguel #17 (2.0 FPG) are the risks.","Angel fouled out in G6. Miguel fouled out G15 vs Apaz.","Marlon hit 4 fouls in G11 & G12 — manage him early."]},
+      {title:"STAR POWER",pts:["Angel #91 (15.0 PPG) + Marlon #11 (14.4 PPG) = elite duo.","Chavez #77: 15 three-pointers made — top perimeter threat.","Best game: G11 vs Estrella Roja (71 pts, forfeit win)."]},
+    ],
+  },
+  es:{
+    toggle:"🌐 English",
+    hdr:{rec:"RÉCORD",ppgFor:"PPP FAV.",ppgAgnst:"PPP CONT.",margin:"DIF. PROM.",total:"PARTIDOS"},
+    mBadge:n=>`⚠ ${n} ACTA FALTANTE`,
+    tabs:{season:"Temporada",gamelog:"Registro",boxscore:"Desglose",trends:"Tendencias"},
+    seasonLbl:n=>`ESTADÍSTICAS · ${n} PARTIDOS · CLICK PARA ORDENAR`,
+    warnBold:"1 partido aún faltante",
+    warnMsg:n=>`(G9 — rival desconocido, victoria confirmada). G3 vs Primates Unidos (D 41–43) identificado. Stats de ${n} partidos con acta.`,
+    cardLbls:["🏆 Líder PPP","📈 2do PPP","🎯 Líder Triples","⚠️ Riesgo Faltas","💪 Prom. 4to Q","📊 Récord"],
+    card3sub:"15 triples anotados",cardQ4sub:"vs 6.4 rival",winRate:"porcentaje de victorias",
+    colPlayer:"JUGADOR",colGP:"PJ",colPPG:"PPP",colFGM:"TCM",colFPG:"FPP",
+    injNote:"Lesionado — no juega",cruiseNote:"Fuera — crucero",
+    legend:"🤕 = lesionado · 🚢 = fuera (crucero) · ✕ = expulsado temp. · 3PM = triples anotados",
+    gamelogLbl:(w,l)=>`REGISTRO · ${w}V–${l}D · CLICK PARA VER DESGLOSE`,
+    bsArrow:"desglose →",detArrow:"ver detalles →",
+    missBadge:"ACTA FALTANTE",confBadge:"MARCADOR CONFIRMADO",
+    missNote:"Marcador estimado de la tabla de posiciones.",
+    confNote:s=>`Entrenador confirmó marcador (${s}). Acta no recuperada.`,
+    selGame:"Selecciona un partido.",
+    WIN:"VICTORIA",LOSS:"DERROTA",
+    pStats:"STATS DE JUGADORES",colPlayerBS:"JUGADOR",colFT:"TL",colPF:"FP",
+    foulOut:"EXPULSADO POR FALTAS",loggedLbl:"TOTAL",
+    shotFlow:"FLUJO DE TIROS POR CUARTO",chipFT:"TL",
+    shotLegend:"○ = chip redondo · punteado = TL · borde sólido = triple",
+    shotNA:m=>m?"Secuencia de tiros no disponible — acta no recuperada.":"Secuencia no disponible para G1–G2 (actas aún no subidas).",
+    qNoData:"sin datos",
+    missingTitle:"ACTA NO ENCONTRADA",
+    mResult:"Resultado:",mDate:"Fecha:",mHow:"Cómo lo sabemos:",
+    mForfeit:"El rival anotó 0 — posible walkover antes de iniciar.",
+    mRecover:"Cómo recuperar el acta:",
+    mS1:"Contacta al COMUDE: deporte.popular@comudepuertovallarta.gob.mx",
+    mS2:"Revisa el grupo de WhatsApp de Liga Tucán 3ra Categoría para hojas de árbitros",
+    mS3:"Consulta al coordinador de árbitros — González Elvis o Villalobos Manuel",
+    trendsLbl:n=>`TENDENCIAS · ${n} PARTIDOS`,
+    q4Title:"ANOTACIÓN EN 4TO CUARTO",q4Sub:"Cajos (naranja) vs Rival — fuerte cierre",
+    scTitle:"LÍDERES ANOTADORES POR PARTIDO",scSub:"Puntos de los 6 principales anotadores",
+    perfTable:"RENDIMIENTO POR PARTIDO",
+    colOpp:"RIVAL",colRes:"RES",colFor:"FAV",colAgnst:"CONTRA",colMargin:"DIFERENCIA",colRefs:"ÁRBITROS",avg:"PROM.",
+    pats:[
+      {title:"CIERRE 4TO CUARTO",pts:["Prom. 4to Q: 10.1–6.4 — cierres consistentes.","Mejor 4to Q: G7 Renegados 18–4. Mejor salida: G11 (71 pts).","Remontada G2 vs Solis: +5 pts en 4to Q."]},
+      {title:"VULNERABILIDAD 2DO Q",pts:["Superados en 2do Q en seis ocasiones.","G10 Commando Sport: 12–19 en 2do Q — clave en la derrota.","G13 Real Ixtapa: cedieron 19 en 2do Q, perdieron en tiempo suplementario."]},
+      {title:"MANEJO DE FALTAS",pts:["Angel #91 (3.0 FPP) + Miguel #17 (2.0 FPP) son el riesgo.","Angel expulsado en G6. Miguel expulsado en G15 vs Apaz.","Marlon acumuló 4 faltas en G11 y G12 — controlarlo temprano."]},
+      {title:"FIGURAS ESTELARES",pts:["Angel #91 (15.0 PPP) + Marlon #11 (14.4 PPP) = dúo de élite.","Chavez #77: 15 triples anotados — principal amenaza perimetral.","Mejor partido: G11 vs Estrella Roja (71 pts, walkover)."]},
+    ],
+  }
+};
+
 const PLAYERS = [
-  {number:1,  displayName:"Alex Palometta"},
+  {number:1,  displayName:"Alex Palomera"},
   {number:7,  displayName:"Kamau", badge:"🤕", badgeNote:"Injured — out"},
   {number:9,  displayName:"Emmanuel", note:"#16 in G8 scorecard"},
   {number:11, displayName:"Marlon"},
@@ -63,29 +151,39 @@ const GAMES = [
     quarters:[{q:"Q1",t:6,o:8},{q:"Q2",t:6,o:7},{q:"Q3",t:8,o:6},{q:"Q4",t:11,o:5}],
     playerStats:[{number:1,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:9,pts:2,fg2:1,fg3:0,ft:0,fouls:0},{number:11,pts:16,fg2:5,fg3:0,ft:6,fouls:0},{number:15,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:16,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:17,pts:0,fg2:0,fg3:0,ft:0,fouls:2},{number:24,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:43,pts:5,fg2:2,fg3:0,ft:1,fouls:3},{number:77,pts:8,fg2:3,fg3:0,ft:2,fouls:2},{number:87,pts:0,fg2:0,fg3:0,ft:0,fouls:4},{number:97,pts:0,fg2:0,fg3:0,ft:0,fouls:1}],
   },
+  // ── IDENTIFIED: was "G8 missing L" placeholder, now correctly placed as G3 ──
   {
-    id:3,date:"Feb 20, 2026",opponent:"Marinaritos",location:"Cancha 4 · Outdoor",result:"W",teamScore:43,opponentScore:34,
+    id:3, missing:true, scoreConfirmed:true,
+    date:"~Feb 2026", opponent:"Primates Unidos",
+    location:"Unknown", result:"L",
+    teamScore:41, opponentScore:43,
+    refs:null, shots:null, quarters:[],
+    scoreNote:"Score confirmed by coach. Full scorecard not recovered. Previously mis-estimated as a late-March game.",
+    playerStats:[],
+  },
+  {
+    id:4,date:"Feb 20, 2026",opponent:"Marinaritos",location:"Cancha 4 · Outdoor",result:"W",teamScore:43,opponentScore:34,
     refs:{j1:"García Dayel",j2:"Vázquez Pedro"},
     quarters:[{q:"Q1",t:13,o:8},{q:"Q2",t:11,o:9},{q:"Q3",t:10,o:8},{q:"Q4",t:9,o:9}],
     shots:[[7,2],[43,2],[16,2],[7,2],[91,2],[7,1],[7,2],[43,2],[16,2],[7,2],[91,3],[91,2],[91,2],[77,2],[7,1],[7,1],[7,2],[24,2],[77,2],[77,1],[16,2],[43,2],[43,2]],
     playerStats:[{number:1,pts:0,fg2:0,fg3:0,ft:0,fouls:2},{number:7,pts:13,fg2:5,fg3:0,ft:3,fouls:1},{number:15,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:16,pts:6,fg2:3,fg3:0,ft:0,fouls:0},{number:17,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:24,pts:2,fg2:1,fg3:0,ft:0,fouls:0},{number:43,pts:8,fg2:4,fg3:0,ft:0,fouls:2},{number:77,pts:5,fg2:2,fg3:0,ft:1,fouls:0},{number:87,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:91,pts:9,fg2:3,fg3:1,ft:0,fouls:1},{number:97,pts:0,fg2:0,fg3:0,ft:0,fouls:0}],
   },
   {
-    id:4,date:"Feb 27, 2026",opponent:"Pajaros",location:"Cancha 4 Estadio · Outdoor",result:"W",teamScore:42,opponentScore:28,
+    id:5,date:"Feb 27, 2026",opponent:"Pajaros",location:"Cancha 4 Estadio · Outdoor",result:"W",teamScore:42,opponentScore:28,
     refs:{j1:"González Elvis",j2:"De León Sofía"},
     quarters:[{q:"Q1",t:8,o:7},{q:"Q2",t:15,o:6},{q:"Q3",t:12,o:8},{q:"Q4",t:7,o:7}],
     shots:[[43,2],[91,2],[7,2],[43,2],[77,2],[1,2],[91,2],[1,2],[11,2],[91,2],[17,2],[7,1],[7,2],[24,1],[24,1],[11,2],[43,2],[7,2],[7,2],[11,1],[11,2],[7,2],[77,2]],
     playerStats:[{number:1,pts:4,fg2:2,fg3:0,ft:0,fouls:2},{number:7,pts:11,fg2:5,fg3:0,ft:1,fouls:2},{number:11,pts:7,fg2:3,fg3:0,ft:1,fouls:1},{number:15,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:17,pts:2,fg2:1,fg3:0,ft:0,fouls:3},{number:24,pts:2,fg2:0,fg3:0,ft:2,fouls:0},{number:43,pts:6,fg2:3,fg3:0,ft:0,fouls:2},{number:77,pts:4,fg2:2,fg3:0,ft:0,fouls:1},{number:87,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:91,pts:6,fg2:3,fg3:0,ft:0,fouls:3},{number:97,pts:0,fg2:0,fg3:0,ft:0,fouls:1}],
   },
   {
-    id:5,date:"Mar 8, 2026",opponent:"Warriors",location:"Auditorio · Indoor",result:"W",teamScore:28,opponentScore:24,
+    id:6,date:"Mar 8, 2026",opponent:"Warriors",location:"Auditorio · Indoor",result:"W",teamScore:28,opponentScore:24,
     refs:{j1:"Ruiz Jorge",j2:"Castañeda Jorge"},
     quarters:[{q:"Q1",t:6,o:3},{q:"Q2",t:10,o:5},{q:"Q3",t:6,o:4},{q:"Q4",t:6,o:12}],
     shots:[[91,2],[7,2],[1,2],[7,1],[7,1],[77,2],[43,2],[77,2],[77,2],[77,2],[91,2],[43,1],[43,1],[91,2],[91,1],[91,2],[43,1]],
     playerStats:[{number:1,pts:2,fg2:1,fg3:0,ft:0,fouls:2},{number:7,pts:4,fg2:1,fg3:0,ft:2,fouls:4},{number:15,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:17,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:24,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:43,pts:5,fg2:1,fg3:0,ft:3,fouls:1},{number:77,pts:8,fg2:4,fg3:0,ft:0,fouls:0},{number:91,pts:9,fg2:4,fg3:0,ft:1,fouls:5,foulOut:true}],
   },
   {
-    id:6,date:"Mar 20, 2026",opponent:"Renegados",location:"Cancha 4 · Outdoor",result:"W",teamScore:46,opponentScore:19,
+    id:7,date:"Mar 20, 2026",opponent:"Renegados",location:"Cancha 4 · Outdoor",result:"W",teamScore:46,opponentScore:19,
     refs:{j1:"Ruiz Jorge",j2:"Saenz Pablo"},
     scoreNote:"2 pts unattributed in shot log",
     quarters:[{q:"Q1",t:7,o:5},{q:"Q2",t:12,o:4},{q:"Q3",t:9,o:6},{q:"Q4",t:18,o:4}],
@@ -93,28 +191,21 @@ const GAMES = [
     playerStats:[{number:1,pts:2,fg2:1,fg3:0,ft:0,fouls:1},{number:7,pts:15,fg2:7,fg3:0,ft:1,fouls:1},{number:15,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:17,pts:0,fg2:0,fg3:0,ft:0,fouls:4},{number:24,pts:4,fg2:2,fg3:0,ft:0,fouls:3},{number:43,pts:17,fg2:6,fg3:0,ft:3,fouls:0},{number:77,pts:6,fg2:0,fg3:2,ft:0,fouls:2}],
   },
   {
-    id:7,date:"Mar 23, 2026",opponent:"Linces",location:"Auditorio · Indoor",result:"W",teamScore:53,opponentScore:30,
+    id:8,date:"Mar 23, 2026",opponent:"Linces",location:"Auditorio · Indoor",result:"W",teamScore:53,opponentScore:30,
     refs:{j1:"Villalobos Manuel",j2:"Pérez Julieta"},
     scoreNote:"3 pts adjusted from shot log (#91 ambiguous entry)",
     quarters:[{q:"Q1",t:11,o:14},{q:"Q2",t:16,o:5},{q:"Q3",t:14,o:7},{q:"Q4",t:12,o:4}],
     shots:[[91,2],[43,2],[91,2],[91,3],[91,2],[43,2],[91,2],[77,2],[77,2],[77,3],[43,2],[1,2],[77,2],[91,2],[91,1],[91,1],[91,1],[91,3],[87,1],[43,2],[91,2],[77,2],[77,2],[87,2],[77,3],[43,1],[17,2]],
     playerStats:[{number:1,pts:2,fg2:1,fg3:0,ft:0,fouls:0},{number:17,pts:2,fg2:1,fg3:0,ft:0,fouls:0},{number:43,pts:9,fg2:4,fg3:0,ft:1,fouls:0},{number:77,pts:16,fg2:5,fg3:2,ft:0,fouls:2},{number:87,pts:3,fg2:1,fg3:0,ft:1,fouls:0},{number:91,pts:21,fg2:6,fg3:2,ft:3,fouls:3}],
   },
-  // ── MISSING GAMES ── Identified via league standings cross-reference (J14 = 14 games, file = 12)
-  {
-    id:8, missing:true,
-    date:"~Mar 25–27, 2026", opponent:"Unknown", location:"Unknown · likely Cancha 4 or Auditorio",
-    result:"L", teamScore:44, opponentScore:43,
-    refs:null, shots:null, quarters:[],
-    scoreNote:"ESTIMATED — Score derived from league standings (PF/PA delta). Scorecard not recovered. Contact COMUDE.",
-    playerStats:[],
-  },
+  // ── STILL MISSING ── 1 game remains unaccounted (a win, per league standings)
   {
     id:9, missing:true,
-    date:"~Late April 2026", opponent:"Unknown", location:"Unknown · likely Cancha 4 or Auditorio",
-    result:"W", teamScore:20, opponentScore:0,
+    date:"~Late April / Early May 2026", opponent:"Unknown",
+    location:"Unknown", result:"W",
+    teamScore:null, opponentScore:null,
     refs:null, shots:null, quarters:[],
-    scoreNote:"ESTIMATED — Score derived from league standings. Possible forfeit (opponent scored 0). Scorecard not recovered.",
+    scoreNote:"MISSING — Result (win) confirmed from league standings. No score or opponent data. Contact COMUDE.",
     playerStats:[],
   },
   {
@@ -154,7 +245,14 @@ const GAMES = [
     shots:[[77,2],[11,2],[43,2],[1,2],[43,2],[77,2],[91,2],[91,2],[77,1],[11,1],[91,2],[91,1],[91,2],[77,2],[11,2],[43,2],[91,2],[91,3],[11,2],[1,2],[91,2],[91,1],[91,1],[91,1],[43,2],[11,2]],
     playerStats:[{number:1,pts:4,fg2:2,fg3:0,ft:0,fouls:2},{number:11,pts:9,fg2:4,fg3:0,ft:1,fouls:1},{number:15,pts:0,fg2:0,fg3:0,ft:0,fouls:0},{number:17,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:43,pts:8,fg2:4,fg3:0,ft:0,fouls:1},{number:77,pts:7,fg2:3,fg3:0,ft:1,fouls:2},{number:87,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:91,pts:19,fg2:6,fg3:1,ft:4,fouls:4}],
   },
-];
+  {
+    id:15,date:"Jun 7, 2026",opponent:"Apaz",location:"Auditorio Municipal · Indoor",result:"W",teamScore:66,opponentScore:54,
+    refs:{j1:"Castañeda Jorge",j2:"Ruiz Jorge"},
+    scoreNote:"1 pt unattributed in shot log. Opp Q4 corrected to 15 from transcript's 13 (final score 66–54 requires it).",
+    quarters:[{q:"Q1",t:27,o:11},{q:"Q2",t:12,o:16},{q:"Q3",t:14,o:12},{q:"Q4",t:13,o:15}],
+    shots:[[77,2],[77,2],[11,2],[11,1],[11,1],[43,2],[91,1],[77,2],[91,2],[77,3],[11,2],[1,2],[77,2],[91,1],[91,1],[91,1],[91,2],[43,2],[15,2],[43,2],[15,2],[43,2],[77,2],[77,1],[91,2],[91,2],[24,2],[91,2],[91,2],[91,2],[43,2],[43,2],[91,2],[91,2],[91,1],[91,2]],
+    playerStats:[{number:1,pts:2,fg2:1,fg3:0,ft:0,fouls:1},{number:11,pts:6,fg2:2,fg3:0,ft:2,fouls:1},{number:15,pts:4,fg2:2,fg3:0,ft:0,fouls:1},{number:17,pts:0,fg2:0,fg3:0,ft:0,fouls:5,foulOut:true},{number:24,pts:2,fg2:1,fg3:0,ft:0,fouls:0},{number:43,pts:12,fg2:6,fg3:0,ft:0,fouls:2},{number:77,pts:14,fg2:5,fg3:1,ft:1,fouls:2},{number:87,pts:0,fg2:0,fg3:0,ft:0,fouls:1},{number:91,pts:25,fg2:10,fg3:0,ft:5,fouls:3}],
+  },
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 function pName(n){return PLAYERS.find(x=>x.number===n)?.displayName||`#${n}`;}
@@ -186,9 +284,11 @@ const C={bg:"#08101e",card:"#0f1929",cardAlt:"#131f30",border:"#1e2d42",orange:"
 const SEASON=computeSeason();
 const WINS=GAMES.filter(g=>g.result==="W").length;
 const LOSSES=GAMES.filter(g=>g.result==="L").length;
-const AVG_PF=(GAMES.reduce((s,g)=>s+g.teamScore,0)/GAMES.length).toFixed(1);
-const AVG_PA=(GAMES.reduce((s,g)=>s+g.opponentScore,0)/GAMES.length).toFixed(1);
-const AVG_MARGIN=((GAMES.reduce((s,g)=>s+(g.teamScore-g.opponentScore),0)/GAMES.length)).toFixed(1);
+const knownGames=GAMES.filter(g=>g.teamScore!=null);
+const AVG_PF=(knownGames.reduce((s,g)=>s+g.teamScore,0)/knownGames.length).toFixed(1);
+const AVG_PA=(knownGames.reduce((s,g)=>s+g.opponentScore,0)/knownGames.length).toFixed(1);
+const AVG_MARGIN=((knownGames.reduce((s,g)=>s+(g.teamScore-g.opponentScore),0)/knownGames.length)).toFixed(1);
+const MISSING_COUNT=GAMES.filter(g=>g.missing&&!g.scoreConfirmed).length;
 
 // ─── Chart components (pure SVG/CSS — no external lib needed) ─────────────
 function BarChart({data,keys,colors,h=160}){
@@ -230,18 +330,20 @@ function LineChart({data,lines,h=160}){
 }
 
 // ─── Shot chip + timeline ─────────────────────────────────────────────────
+let _lang="en";
 function ShotChip({n,pts,qs}){
   const col=PC[n]||"#64748b";const is3=pts===3,isFT=pts===1;
   return(
     <div title={`${pName(n)} · ${pts}${isFT?"FT":is3?"pts (3)":"pts"}`}
       style={{background:col,border:is3?`2px solid #fff`:isFT?`1px dashed #fff`:"none",borderRadius:isFT?"50%":5,width:30,height:30,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"default",flexShrink:0,boxShadow:"0 1px 3px rgba(0,0,0,.4)"}}>
       <div style={{fontSize:8,color:"#000",fontWeight:900,lineHeight:1}}>{n}</div>
-      <div style={{fontSize:7,color:"rgba(0,0,0,.7)"}}>{isFT?"FT":is3?"3pt":"2pt"}</div>
+      <div style={{fontSize:7,color:"rgba(0,0,0,.7)"}}>{isFT?(I18N[_lang]?.chipFT||"FT"):is3?"3pt":"2pt"}</div>
     </div>
   );
 }
 
-function ShotTimeline({game}){
+function ShotTimeline({game,lang:tlang}){const _t=I18N[tlang||"en"];
+
   if(!game.shots||!game.shots.length)
     return<div style={{color:C.muted,fontSize:11,padding:"14px 0",fontStyle:"italic"}}>{game.missing?"Shot sequence unavailable — scorecard not recovered.":"Shot sequence not available for G1–G2 (scorecards not yet uploaded)."}</div>;
   const allQs=game.quarters;
@@ -250,7 +352,7 @@ function ShotTimeline({game}){
   const scorers=Array.from(new Set(game.shots.map(s=>s[0]))).filter(n=>game.playerStats.find(p=>p.number===n&&p.pts>0));
   return(
     <div style={{marginTop:18}}>
-      <div style={{fontSize:10,color:C.muted,letterSpacing:3,marginBottom:10}}>SHOT FLOW BY QUARTER</div>
+      <div style={{fontSize:10,color:C.muted,letterSpacing:3,marginBottom:10}}>{t.shotFlow}</div>
       <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:8}}>
         {qShots.map((shots,qi)=>{
           const qLabel=allQs[qi]?.q||`Q${qi+1}`;
@@ -261,7 +363,7 @@ function ShotTimeline({game}){
             <div key={qi} style={{background:isOT?"rgba(245,158,11,.08)":C.cardAlt,border:`1px solid ${isOT?C.yellow:C.border}`,borderRadius:8,padding:"10px 10px 8px",minWidth:100,flexShrink:0}}>
               <div style={{fontSize:9,color:isOT?C.yellow:C.orange,letterSpacing:2,marginBottom:8,fontWeight:700}}>{qLabel} — {qTotal} PTS{loggedQ<qTotal?<span style={{color:C.muted}}>*</span>:""}</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-                {shots.length===0?<div style={{fontSize:10,color:C.muted,fontStyle:"italic"}}>no log</div>:shots.map((sh,i)=><ShotChip key={i} n={sh[0]} pts={sh[1]}/>)}
+                {shots.length===0?<div style={{fontSize:10,color:C.muted,fontStyle:"italic"}}>{_t.qNoData}</div>:shots.map((sh,i)=><ShotChip key={i} n={sh[0]} pts={sh[1]}/>)}
               </div>
             </div>
           );
@@ -274,9 +376,7 @@ function ShotTimeline({game}){
             <span style={{fontSize:10,color:C.light}}>#{n} {pName(n)}</span>
           </div>
         ))}
-        <div style={{fontSize:10,color:C.muted,marginLeft:"auto"}}>
-          ○ = circle chip · dashed = FT · solid border = 3-pointer
-        </div>
+        <div style={{fontSize:10,color:C.muted,marginLeft:"auto"}}>{_t.shotLegend}</div>
       </div>
     </div>
   );
@@ -321,22 +421,25 @@ const perGameData=GAMES.map(g=>{
   return row;
 });
 
-const STAT_COLS=[
+function getStatCols(t){return[
   {key:"number",label:"#",align:"center",noSort:true},
-  {key:"name",label:"PLAYER",align:"left",noSort:true},
-  {key:"gp",label:"GP",align:"center"},
+  {key:"name",label:t.colPlayer,align:"left",noSort:true},
+  {key:"gp",label:t.colGP,align:"center"},
   {key:"pts",label:"PTS",align:"center"},
-  {key:"ppg",label:"PPG",align:"center"},
-  {key:"fgm",label:"FGM",align:"center"},
+  {key:"ppg",label:t.colPPG,align:"center"},
+  {key:"fgm",label:t.colFGM,align:"center"},
   {key:"fg3",label:"3PM",align:"center"},
   {key:"ft",label:"FTM",align:"center"},
-  {key:"fouls",label:"PF",align:"center"},
-  {key:"fpg",label:"FPG",align:"center"},
-];
+  {key:"fouls",label:t.colPF||"PF",align:"center"},
+  {key:"fpg",label:t.colFPG,align:"center"},
+];}
 
 // ─── Main component ───────────────────────────────────────────────────────
 function CajosStats(){
   const[tab,setTab]=useState("season");
+  const[lang,setLang]=useState("en");
+  _lang=lang;
+  const t=I18N[lang];
   const[sortCol,setSortCol]=useState("pts");
   const[sortDir,setSortDir]=useState("desc");
   const[selGame,setSelGame]=useState(null);
@@ -369,7 +472,8 @@ function CajosStats(){
             <div style={{fontSize:10,letterSpacing:3,color:C.muted,marginTop:3}}>LIGA TUCÁN MUNICIPAL · 3RA CATEGORÍA · VARONIL</div>
           </div>
           <div style={{display:"flex",gap:20,flexWrap:"wrap",alignItems:"center"}}>
-            {[{val:`${WINS}–${LOSSES}`,lbl:"LEAGUE REC.",col:C.orange},{val:AVG_PF,lbl:"PPG FOR",col:C.text},{val:AVG_PA,lbl:"PPG AGNST",col:C.light},{val:`+${AVG_MARGIN}`,lbl:"AVG MARGIN",col:C.green}]
+            <button onClick={()=>setLang(l=>l==="en"?"es":"en")} style={{background:"rgba(249,115,22,.12)",border:`1px solid ${C.orange}`,color:C.orange,padding:"5px 12px",borderRadius:20,fontFamily:"'DM Mono',monospace",fontSize:11,cursor:"pointer",letterSpacing:1,marginRight:4}}>{t.toggle}</button>
+            {[{val:`${WINS}–${LOSSES}`,lbl:t.hdr.rec,col:C.orange},{val:AVG_PF,lbl:t.hdr.ppgFor,col:C.text},{val:AVG_PA,lbl:t.hdr.ppgAgnst,col:C.light},{val:`+${AVG_MARGIN}`,lbl:t.hdr.margin,col:C.green}]
               .map(({val,lbl,col})=>(
                 <div key={lbl} style={{textAlign:"center"}}>
                   <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:32,fontWeight:900,lineHeight:1,color:col}}>{val}</div>
@@ -377,9 +481,9 @@ function CajosStats(){
                 </div>
               ))}
             <div style={{borderLeft:`1px solid ${C.border}`,paddingLeft:18,textAlign:"center"}}>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:C.yellow}}>14</div>
-              <div style={{fontSize:9,letterSpacing:2,color:C.muted}}>TOTAL GAMES</div>
-              <div style={{fontSize:9,color:C.yellow,marginTop:2}}>⚠ 2 SCORECARDS MISSING</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:28,fontWeight:900,color:MISSING_COUNT>0?C.yellow:C.green}}>{GAMES.length}</div>
+              <div style={{fontSize:9,letterSpacing:2,color:C.muted}}>{t.hdr.total}</div>
+              {MISSING_COUNT>0&&<div style={{fontSize:9,color:C.yellow,marginTop:2}}>⚠ {MISSING_COUNT} SCORECARD MISSING</div>}
             </div>
           </div>
         </div>
@@ -387,8 +491,8 @@ function CajosStats(){
 
       <div style={S.tabs}>
         {["season","gamelog","boxscore","trends"].map(t=>(
-          <button key={t} onClick={()=>setTab(t)} style={S.tab(tab===t)}>
-            {{season:"Season Stats",gamelog:"Game Log",boxscore:"Box Score",trends:"Trends"}[t].toUpperCase()}
+          <button key={t_name} onClick={()=>setTab(t_name)} style={S.tab(tab===t)}>
+            {t.tabs[t_name].toUpperCase()}
           </button>
         ))}
       </div>
@@ -398,27 +502,27 @@ function CajosStats(){
         {/* ══ SEASON STATS ══ */}
         {tab==="season"&&(
           <div>
-            <div style={S.sL}>SEASON PLAYER STATISTICS · 12 DOCUMENTED GAMES · CLICK HEADER TO SORT</div>
+            <div style={S.sL}>{t.seasonLbl(GAMES.length-MISSING_COUNT)}</div>
             <div style={{background:"rgba(245,158,11,.07)",border:"1px solid rgba(245,158,11,.3)",borderRadius:6,padding:"10px 14px",marginBottom:14,display:"flex",gap:10,alignItems:"center"}}>
               <span style={{fontSize:16}}>⚠</span>
               <div style={{fontSize:11,color:C.yellow,lineHeight:1.6}}>
-                <b>2 games are missing from this file</b> (G8 & G9 — scorecards not found). League standings confirm a 10W–4L record over 14 games. Player stats below reflect the 12 documented games only. Contact COMUDE to recover the missing scorecards: <span style={{color:C.teal}}>deporte.popular@comudepuertovallarta.gob.mx</span>
+                <b>1 game still missing</b> (G9 — unknown opponent, confirmed win). G3 vs Primates Unidos (L 41–43) has been identified and placed. Player stats below reflect {GAMES.length-MISSING_COUNT} games with scorecards only.
               </div>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginBottom:16}}>
-              {[{lbl:"🏆 Leader PPG",val:"Angel #91",sub:"105 pts · 15.0 PPG",c:C.orange},{lbl:"📈 2nd PPG",val:"Marlon #11",sub:"101 pts · 14.4 PPG",c:C.green},{lbl:"🎯 3-Point Leader",val:"Alex Chavez #77",sub:"14 triples made",c:C.teal},{lbl:"⚠️ Foul Risk",val:"Angel / Miguel",sub:"3.0 / 2.0 FPG",c:C.yellow},{lbl:"💪 Q4 Avg",val:"10.1 pts",sub:"vs 6.4 opp",c:C.green},{lbl:"📊 Record",val:`${WINS}–${LOSSES}`,sub:`${((WINS/GAMES.length)*100).toFixed(0)}% win rate`,c:WINS>LOSSES?C.green:C.red}]
+              {[{lbl:t.cardLbls[0],val:"Angel #91",sub:"105 pts · 15.0 PPG",c:C.orange},{lbl:t.cardLbls[1],val:"Marlon #11",sub:"101 pts · 14.4 PPG",c:C.green},{lbl:t.cardLbls[2],val:"Alex Chavez #77",sub:t.card3sub,c:C.teal},{lbl:t.cardLbls[3],val:"Angel / Miguel",sub:"3.0 / 2.0 FPG",c:C.yellow},{lbl:t.cardLbls[4],val:"10.1 pts",sub:t.cardQ4sub,c:C.green},{lbl:t.cardLbls[5],val:`${WINS}–${LOSSES}`,sub:`${((WINS/GAMES.length)*100).toFixed(0)}% ${t.winRate}`,c:WINS>LOSSES?C.green:C.red}]
                 .map(x=><div key={x.lbl} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:6,padding:"10px 13px"}}><div style={{fontSize:9,color:C.muted,letterSpacing:1,marginBottom:3}}>{x.lbl.toUpperCase()}</div><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:700,color:x.c}}>{x.val}</div><div style={{fontSize:11,color:C.light,marginTop:2}}>{x.sub}</div></div>)}
             </div>
             <div style={{overflowX:"auto"}}>
               <table style={S.tbl}>
-                <thead><tr>{STAT_COLS.map(col=><th key={col.key} className="thx" style={S.th(sortCol===col.key,col.align)} onClick={()=>!col.noSort&&doSort(col.key)}>{col.label}{!col.noSort&&<SortIcon active={sortCol===col.key} dir={sortDir}/>}</th>)}</tr></thead>
+                <thead><tr>{getStatCols(t).map(col=><th key={col.key} className="thx" style={S.th(sortCol===col.key,col.align)} onClick={()=>!col.noSort&&doSort(col.key)}>{col.label}{!col.noSort&&<SortIcon active={sortCol===col.key} dir={sortDir}/>}</th>)}</tr></thead>
                 <tbody>
                   {sorted.map((p,i)=>(
                     <tr key={p.number} className="hrow" style={{background:i%2===0?C.card:C.cardAlt}}>
                       <td style={{...S.td("center"),fontFamily:"'Barlow Condensed',sans-serif",fontSize:19,fontWeight:900,color:p.badge?C.muted:C.orange}}>{p.badge?<span style={{fontSize:16}}>{p.badge}</span>:p.number}</td>
                       <td style={S.td("left")}>
                         <span style={{fontWeight:500,color:p.badge?"#6b7280":"#fff"}}>{p.name}</span>
-                        {p.badge&&<span style={{marginLeft:6,fontSize:10,color:C.muted,fontStyle:"italic"}}>{PLAYERS.find(x=>x.number===p.number)?.badgeNote}</span>}
+                        {p.badge&&<span style={{marginLeft:6,fontSize:10,color:C.muted,fontStyle:"italic"}}>{p.badge==="🤕"?t.injNote:t.cruiseNote}</span>}
                         {!p.badge&&p.note&&<span style={{marginLeft:6,fontSize:10,color:C.yellow,background:"#451a03",padding:"1px 5px",borderRadius:3}}>{p.note}</span>}
                         {!p.badge&&<TBar v={p.pts} max={maxPts} color={C.orange}/>}
                       </td>
@@ -435,14 +539,14 @@ function CajosStats(){
                 </tbody>
               </table>
             </div>
-            <div style={{marginTop:10,fontSize:10,color:C.muted}}>🤕 = injured · 🚢 = away on cruise ship · ✕ = season foul-out · 3PM = three-pointers made</div>
+            <div style={{marginTop:10,fontSize:10,color:C.muted}}>{t.legend}</div>
           </div>
         )}
 
         {/* ══ GAME LOG ══ */}
         {tab==="gamelog"&&(
           <div>
-            <div style={S.sL}>GAME LOG · {WINS}W–{LOSSES}L · CLICK TO VIEW BOX SCORE</div>
+            <div style={S.sL}>{t.gamelogLbl(WINS,LOSSES)}</div>
             {GAMES.map(g=>(
               <div key={g.id} className="gc"
                 style={{background:g.missing?"rgba(245,158,11,.04)":C.card,border:`1px solid ${g.missing?"rgba(245,158,11,.35)":C.border}`,borderRadius:8,padding:"13px 16px",marginBottom:10,transition:"border-color .2s",opacity:g.missing?0.85:1}}
@@ -455,7 +559,7 @@ function CajosStats(){
                     <div>
                       <div style={{display:"flex",alignItems:"center",gap:8}}>
                         <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:17,fontWeight:700,color:g.missing?"#a16207":"#fff",letterSpacing:1}}>G{g.id} — {g.missing?"? UNKNOWN":g.opponent.toUpperCase()}</div>
-                        {g.missing&&<span style={{fontSize:10,background:"rgba(245,158,11,.2)",color:C.yellow,border:"1px solid rgba(245,158,11,.4)",padding:"2px 7px",borderRadius:4,letterSpacing:1}}>SCORECARD MISSING</span>}
+                        {g.missing&&<span style={{fontSize:10,background:"rgba(245,158,11,.2)",color:C.yellow,border:"1px solid rgba(245,158,11,.4)",padding:"2px 7px",borderRadius:4,letterSpacing:1}}>{g.scoreConfirmed?t.confBadge:t.missBadge}</span>}
                       </div>
                       <div style={{color:C.muted,fontSize:11,marginTop:1}}>{g.date} · {g.location}</div>
                       {g.refs&&<div style={{fontSize:10,color:C.muted,marginTop:1}}>🏀 {g.refs.j1} &amp; {g.refs.j2}</div>}
@@ -463,19 +567,23 @@ function CajosStats(){
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:10}}>
                     <div style={{textAlign:"center"}}>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:33,fontWeight:900,lineHeight:1,color:g.missing?"#a16207":"#fff"}}>{g.teamScore}{g.missing&&<span style={{fontSize:16,color:C.yellow}}>~</span>}</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:33,fontWeight:900,lineHeight:1,color:g.missing&&!g.scoreConfirmed?"#6b7280":g.missing?"#a16207":"#fff"}}>
+                        {g.teamScore!=null?g.teamScore:"?"}{g.missing&&!g.scoreConfirmed&&<span style={{fontSize:20}}></span>}
+                      </div>
                       <div style={{fontSize:9,color:C.orange,letterSpacing:2}}>CAJOS</div>
                     </div>
                     <div style={{color:C.border,fontFamily:"'Barlow Condensed',sans-serif",fontSize:22}}>–</div>
                     <div style={{textAlign:"center"}}>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:33,fontWeight:900,lineHeight:1,color:C.muted}}>{g.opponentScore}{g.missing&&<span style={{fontSize:16,color:C.yellow}}>~</span>}</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:33,fontWeight:900,lineHeight:1,color:C.muted}}>
+                        {g.opponentScore!=null?g.opponentScore:"?"}
+                      </div>
                       <div style={{fontSize:9,color:C.muted,letterSpacing:1}}>{g.missing?"?":g.opponent.slice(0,8).toUpperCase()}</div>
                     </div>
                   </div>
-                  <div style={{fontSize:11,color:C.muted}}>{g.missing?"view details →":"box score →"}</div>
+                  <div style={{fontSize:11,color:C.muted}}>{g.missing?t.detArrow:t.bsArrow}</div>
                 </div>
                 <QBars game={g}/>
-                {g.missing&&<div style={{marginTop:8,display:"flex",alignItems:"center",gap:8,background:"rgba(245,158,11,.08)",padding:"7px 10px",borderRadius:5}}><span style={{fontSize:14}}>⚠</span><span style={{fontSize:11,color:C.yellow}}>Score estimated from league standings data. Request scorecard from COMUDE at deporte.popular@comudepuertovallarta.gob.mx</span></div>}
+                {g.missing&&<div style={{marginTop:8,display:"flex",alignItems:"center",gap:8,background:"rgba(245,158,11,.08)",padding:"7px 10px",borderRadius:5}}><span style={{fontSize:14}}>⚠</span><span style={{fontSize:11,color:C.yellow}}>{g.scoreConfirmed?t.confNote(`${g.teamScore}–${g.opponentScore}`):t.missNote} {!g.scoreConfirmed&&"deporte.popular@comudepuertovallarta.gob.mx"}</span></div>}
                 {!g.missing&&g.scoreNote&&<div style={{marginTop:7,fontSize:10,color:C.yellow}}>⚠ {g.scoreNote}</div>}
               </div>
             ))}
@@ -488,32 +596,32 @@ function CajosStats(){
             <div style={{display:"flex",gap:7,marginBottom:14,flexWrap:"wrap"}}>
               {GAMES.map(g=>(
                 <button key={g.id} onClick={()=>setSelGame(g)}
-                  style={{background:selGame?.id===g.id?C.orange:C.card,border:`1px solid ${selGame?.id===g.id?C.orange:C.border}`,color:selGame?.id===g.id?"#fff":C.muted,padding:"6px 11px",borderRadius:5,fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,letterSpacing:1,cursor:"pointer"}}>
-                  G{g.id} {g.result}
+                  style={{background:selGame?.id===g.id?C.orange:C.card,border:`1px solid ${selGame?.id===g.id?C.orange:g.missing?'rgba(245,158,11,.4)':C.border}`,color:selGame?.id===g.id?"#fff":g.missing?C.yellow:C.muted,padding:"6px 11px",borderRadius:5,fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,letterSpacing:1,cursor:"pointer"}}>
+                  G{g.id} {g.missing?'?':g.result}
                 </button>
               ))}
             </div>
 
-            {!selGame&&<div style={{color:C.muted,fontSize:12,textAlign:"center",marginTop:50}}>Select a game.</div>}
+            {!selGame&&<div style={{color:C.muted,fontSize:12,textAlign:"center",marginTop:50}}>{t.selGame}</div>}
             {selGame&&(()=>{
               const g=selGame;
               // Missing game — show info card only
-              if(g.missing) return(
+              if(g.missing&&!g.scoreConfirmed) return(
                 <div style={{background:"rgba(245,158,11,.06)",border:`1px solid rgba(245,158,11,.3)`,borderRadius:8,padding:"20px 22px"}}>
                   <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
                     <div style={{fontSize:32}}>⚠</div>
                     <div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:700,color:C.yellow,letterSpacing:1,marginBottom:6}}>G{g.id} — SCORECARD NOT RECOVERED</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:700,color:C.yellow,letterSpacing:1,marginBottom:6}}>G{g.id} — {t.missingTitle}</div>
                       <div style={{fontSize:12,color:C.light,lineHeight:1.7,maxWidth:560}}>
-                        <div><b style={{color:C.text}}>Result:</b> {g.result==="L"?"Loss":"Win"} — estimated score: <b style={{color:C.orange}}>Cajos ~{g.teamScore}</b>, Opponent ~{g.opponentScore}</div>
-                        <div><b style={{color:C.text}}>Date:</b> {g.date}</div>
-                        <div><b style={{color:C.text}}>How we know:</b> League standings cross-reference (J14 snapshot vs this file). Score is the exact delta in PF/PA from the league table.</div>
-                        {g.id===9&&<div style={{marginTop:6,color:C.yellow}}>Opponent scored 0 — this may have been a forfeit before play began.</div>}
+                        <div><b style={{color:C.text}}>{t.mResult}</b> {g.result==="L"?"Loss":"Win"} — estimated score: <b style={{color:C.orange}}>Cajos ~{g.teamScore}</b>, Opponent ~{g.opponentScore}</div>
+                        <div><b style={{color:C.text}}>{t.mDate}</b> {g.date}</div>
+                        <div><b style={{color:C.text}}>{t.mHow}</b> League standings cross-reference (J14 snapshot vs this file). Score is the exact delta in PF/PA from the league table.</div>
+                        {g.id===9&&<div style={{marginTop:6,color:C.yellow}}>{t.mForfeit}</div>}
                         <div style={{marginTop:10,padding:"10px 14px",background:"rgba(0,0,0,.3)",borderRadius:6,borderLeft:`3px solid ${C.yellow}`}}>
-                          <div style={{fontWeight:"bold",color:C.yellow,marginBottom:4}}>How to recover this scorecard:</div>
-                          <div>1. Contact COMUDE: <span style={{color:C.teal}}>deporte.popular@comudepuertovallarta.gob.mx</span></div>
-                          <div>2. Check WhatsApp group for the Liga Tucán 3ra Categoría for referee sheets</div>
-                          <div>3. Ask referee coordinator — González Elvis or Villalobos Manuel appear in adjacent games</div>
+                          <div style={{fontWeight:"bold",color:C.yellow,marginBottom:4}}>{t.mRecover}</div>
+                          <div>1. {t.mS1}</div>
+                          <div>2. {t.mS2}</div>
+                          <div>3. {t.mS3}</div>
                         </div>
                       </div>
                     </div>
@@ -540,7 +648,7 @@ function CajosStats(){
                         {g.refs&&<div style={{fontSize:11,color:C.light,marginTop:2}}>Árbitros: {g.refs.j1} &amp; {g.refs.j2}</div>}
                         {g.scoreNote&&<div style={{fontSize:10,color:C.yellow,marginTop:3}}>⚠ {g.scoreNote}</div>}
                       </div>
-                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,padding:"4px 12px",borderRadius:6,background:g.result==="W"?"rgba(34,197,94,.15)":"rgba(239,68,68,.15)",color:g.result==="W"?C.green:C.red,border:`1px solid ${g.result==="W"?"rgba(34,197,94,.3)":"rgba(239,68,68,.3)"}`}}>{g.result==="W"?"WIN":"LOSS"}</div>
+                      <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,padding:"4px 12px",borderRadius:6,background:g.result==="W"?"rgba(34,197,94,.15)":"rgba(239,68,68,.15)",color:g.result==="W"?C.green:C.red,border:`1px solid ${g.result==="W"?"rgba(34,197,94,.3)":"rgba(239,68,68,.3)"}`}}>{g.result==="W"?t.WIN:t.LOSS}</div>
                     </div>
                     {/* Quarter boxes */}
                     {g.quarters&&g.quarters.length>0&&<div style={{display:"grid",gridTemplateColumns:`repeat(${g.quarters.length},1fr)`,gap:7}}>
@@ -563,15 +671,15 @@ function CajosStats(){
                   </div>
 
                   {/* Player box score */}
-                  <div style={S.sL}>PLAYER STATS</div>
+                  <div style={S.sL}>{t.pStats}</div>
                   <div style={{overflowX:"auto",marginBottom:16}}>
                     <table style={S.tbl}>
-                      <thead><tr>{["#","PLAYER","PTS","FG2","FG3","FT","PF"].map((h,i)=><th key={h} style={S.th(false,i<2?"left":"center")}>{h}</th>)}</tr></thead>
+                      <thead><tr>{["#",t.colPlayerBS,"PTS","FG2","FG3",t.colFT,t.colPF].map((h,i)=><th key={i} style={S.th(false,i<2?"left":"center")}>{h}</th>)}</tr></thead>
                       <tbody>
                         {[...g.playerStats].sort((a,b)=>b.pts-a.pts).map((p,i)=>(
                           <tr key={p.number} className="hrow" style={{background:i%2===0?C.card:C.cardAlt}}>
                             <td style={{...S.td("center"),fontFamily:"'Barlow Condensed',sans-serif",fontSize:17,fontWeight:900,color:C.orange}}>{p.number}</td>
-                            <td style={{...S.td("left"),color:"#fff",fontWeight:500}}>{pName(p.number)}{p.foulOut&&<span style={{marginLeft:7,fontSize:10,color:C.red,background:"rgba(239,68,68,.15)",padding:"1px 5px",borderRadius:3}}>FOULED OUT</span>}</td>
+                            <td style={{...S.td("left"),color:"#fff",fontWeight:500}}>{pName(p.number)}{p.foulOut&&<span style={{marginLeft:7,fontSize:10,color:C.red,background:"rgba(239,68,68,.15)",padding:"1px 5px",borderRadius:3}}>{t.foulOut}</span>}</td>
                             <td style={{...S.td("center"),fontFamily:"'Barlow Condensed',sans-serif",fontSize:19,fontWeight:900,color:p.pts>=20?C.yellow:p.pts>=10?C.orange:p.pts>0?"#fff":C.muted}}>{p.pts>0?p.pts:"—"}</td>
                             <td style={{...S.td("center"),color:p.fg2>0?C.light:C.muted}}>{p.fg2>0?p.fg2:"—"}</td>
                             <td style={{...S.td("center"),color:p.fg3>0?C.yellow:C.muted}}>{p.fg3>0?p.fg3:"—"}</td>
@@ -594,7 +702,7 @@ function CajosStats(){
                   </div>
 
                   {/* Shot timeline */}
-                  <ShotTimeline game={g}/>
+                  <ShotTimeline game={g} lang={lang}/>
                 </div>
               );
             })()}
@@ -604,12 +712,12 @@ function CajosStats(){
         {/* ══ TRENDS ══ */}
         {tab==="trends"&&(
           <div>
-            <div style={S.sL}>GAME TRENDS & PATTERNS · {GAMES.length} GAMES</div>
+            <div style={S.sL}>{t.trendsLbl(GAMES.length)}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:18}}>
               <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"14px 16px"}}>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,color:C.orange,letterSpacing:2,marginBottom:3}}>Q4 SCORING BY GAME</div>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,color:C.orange,letterSpacing:2,marginBottom:3}}>{t.q4Title}</div>
                 <div style={{fontSize:11,color:C.muted,marginBottom:10}}>
-                  <span style={{color:C.orange}}>■ Cajos</span>&nbsp; <span style={{color:C.border}}>■ Opponent</span> — strong Q4 closers
+                  <span style={{color:C.orange}}>■ Cajos</span>&nbsp; <span style={{color:C.border}}>■ {t.colOpp.charAt(0)+t.colOpp.slice(1).toLowerCase()}</span> — {t.q4Sub.split("— ")[1]||""}
                 </div>
                 <BarChart data={q4Data} keys={["Cajos","Opp"]} colors={[C.orange,C.border]} h={150}/>
               </div>
@@ -623,10 +731,10 @@ function CajosStats(){
             </div>
 
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"14px 16px",marginBottom:14}}>
-              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,color:C.orange,letterSpacing:2,marginBottom:10}}>GAME-BY-GAME TEAM PERFORMANCE</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,color:C.orange,letterSpacing:2,marginBottom:10}}>{t.perfTable}</div>
               <div style={{overflowX:"auto"}}>
                 <table style={S.tbl}>
-                  <thead><tr>{["G","OPPONENT","RES","Q1","Q2","Q3","Q4","FOR","AGNST","MARGIN","REFS"].map(h=><th key={h} style={S.th(false,"center")}>{h}</th>)}</tr></thead>
+                  <thead><tr>{["G",t.colOpp,"RES","Q1","Q2","Q3","Q4",t.colFor,t.colAgnst,t.colMargin,t.colRefs].map((h,i)=><th key={i} style={S.th(false,"center")}>{h}</th>)}</tr></thead>
                   <tbody>
                     {GAMES.map((g,i)=>{
                       const margin=g.teamScore-g.opponentScore;
@@ -647,7 +755,7 @@ function CajosStats(){
                   </tbody>
                   <tfoot>
                     <tr style={{background:"rgba(249,115,22,.06)",borderTop:`1px solid ${C.orange}`}}>
-                      <td colSpan={3} style={{...S.td("center"),color:C.orange,fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,letterSpacing:2}}>AVG</td>
+                      <td colSpan={3} style={{...S.td("center"),color:C.orange,fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,letterSpacing:2}}>{t.avg}</td>
                       {["Q1","Q2","Q3","Q4"].map(qk=>{const avg=(GAMES.reduce((s,g)=>{const q=g.quarters.find(x=>x.q===qk);return s+(q?q.t:0);},0)/GAMES.length).toFixed(1);return<td key={qk} style={{...S.td("center"),color:C.light,fontSize:12}}>{avg}</td>;})}
                       <td style={{...S.td("center"),color:C.orange,fontFamily:"'Barlow Condensed',sans-serif",fontSize:15}}>{AVG_PF}</td>
                       <td style={{...S.td("center"),color:C.muted}}>{AVG_PA}</td>
@@ -660,16 +768,12 @@ function CajosStats(){
             </div>
 
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              {[{title:"Q4 CLOSERS",c:C.green,pts:["Avg Q4: 10.1–6.4 pts — consistent finishers.","Best Q4: G6 vs Renegados 18–4. Best run: G9 (71 pts).","Only loss where team was outscored in Q4: G8."]},
-               {title:"Q2 VULNERABILITY",c:C.yellow,pts:["Outscored in Q2 six times across the season.","G8 vs Commando Sport: 12–19 in Q2 — key to loss.","G11 vs Real Ixtapa: gave up 19 in Q2, couldn't hold OT."]},
-               {title:"FOUL MANAGEMENT",c:C.red,pts:["Angel #91 (3.0 FPG) + Miguel #17 (2.0 FPG) are the risks.","Angel fouled out in G5. Near-foul-out several other games.","Both G9 and G10 saw Marlon hit 4 fouls — manage him early."]},
-               {title:"STAR POWER",c:C.teal,pts:["Angel #91 (15.0) + Marlon #11 (14.4) = elite PPG duo.","Chavez #77 now 14 three-pointers on season — best perimeter option.","Best team output: 71 pts vs Estrella Roja (G9)."]}]
-                .map(c=>(
+              {t.pats.map((c,ci)=>{const cs=[C.green,C.yellow,C.red,C.teal][ci];return(
                   <div key={c.title} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px 14px"}}>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,color:c.c,letterSpacing:2,marginBottom:8}}>{c.title}</div>
-                    {c.pts.map((pt,i)=><div key={i} style={{fontSize:11,color:C.light,marginBottom:5,paddingLeft:10,borderLeft:`2px solid ${c.c}`,lineHeight:1.5}}>{pt}</div>)}
+                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,color:cs,letterSpacing:2,marginBottom:8}}>{c.title}</div>
+                    {c.pts.map((pt,i)=><div key={i} style={{fontSize:11,color:C.light,marginBottom:5,paddingLeft:10,borderLeft:`2px solid ${cs}`,lineHeight:1.5}}>{pt}</div>)}
                   </div>
-                ))}
+                );})}
             </div>
           </div>
         )}
@@ -678,8 +782,6 @@ function CajosStats(){
   );
 }
 
-
-    // Remove loading screen and mount app
     document.getElementById('loading').style.display = 'none';
     ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(CajosStats));
   </script>
